@@ -9,12 +9,60 @@ import RaceTrackSimulation from '../simulations/RaceTrackSimulation.jsx';
 import WordProblemSimulation from '../simulations/WordProblemSimulation.jsx';
 
 const STATION_META = [
-  { id: 'ruler',       title: "🔨 Station 1: The Carpenter's Workshop",  subtitle: 'Norway · Using a Ruler', color: 'from-orange-50 to-amber-50',    icon: '📏' },
-  { id: 'garden',      title: '🌻 Station 2: The Giant\'s Garden',        subtitle: 'Brazil · Metres & Centimetres', color: 'from-green-50 to-teal-50', icon: '📐' },
-  { id: 'estimation',  title: "🏜️ Station 3: The Explorer's Trail",       subtitle: 'Egypt · Estimating Length', color: 'from-yellow-50 to-orange-50',  icon: '🤚' },
-  { id: 'conversion',  title: '🌉 Station 4: The Bridge Builder',          subtitle: 'Japan · Converting Units', color: 'from-blue-50 to-purple-50',    icon: '🔄' },
-  { id: 'racetrack',   title: '🏟️ Station 5: The Race Track',              subtitle: 'Kenya · Comparing Lengths', color: 'from-coral-50 to-pink-50',  icon: '⚖️' },
-  { id: 'wordproblem', title: '🌴 Station 6: Path to the Treasure',        subtitle: 'Measurement Island · Word Problems', color: 'from-purple-50 to-indigo-50', icon: '➕' },
+  {
+    id: 'ruler',
+    title: "Carpenter's Workshop",
+    subtitle: '🔨 Norway · Using a Ruler',
+    bg: 'from-[#3D1E00] to-[#6B3B00]',
+    accent: 'border-amber-500',
+    icon: '📏',
+    tag: 'Station 1 of 6',
+  },
+  {
+    id: 'garden',
+    title: "The Giant's Garden",
+    subtitle: '🌻 Brazil · Metres & cm',
+    bg: 'from-[#003D1E] to-[#005C2E]',
+    accent: 'border-teal-500',
+    icon: '📐',
+    tag: 'Station 2 of 6',
+  },
+  {
+    id: 'estimation',
+    title: "The Explorer's Trail",
+    subtitle: '🏜️ Egypt · Estimating Length',
+    bg: 'from-[#3D2800] to-[#6B4500]',
+    accent: 'border-yellow-500',
+    icon: '🤚',
+    tag: 'Station 3 of 6',
+  },
+  {
+    id: 'conversion',
+    title: 'The Bridge Builder',
+    subtitle: '🌉 Japan · Converting Units',
+    bg: 'from-[#001A3D] to-[#00275C]',
+    accent: 'border-blue-500',
+    icon: '🔄',
+    tag: 'Station 4 of 6',
+  },
+  {
+    id: 'racetrack',
+    title: 'The Race Track',
+    subtitle: '🏟️ Kenya · Comparing Lengths',
+    bg: 'from-[#3D0018] to-[#5C0025]',
+    accent: 'border-pink-500',
+    icon: '⚖️',
+    tag: 'Station 5 of 6',
+  },
+  {
+    id: 'wordproblem',
+    title: 'Path to the Treasure',
+    subtitle: '🌴 Measurement Island · Word Problems',
+    bg: 'from-[#1A003D] to-[#2A0060]',
+    accent: 'border-purple-500',
+    icon: '➕',
+    tag: 'Station 6 of 6',
+  },
 ];
 
 const SIMULATION_MAP = {
@@ -33,47 +81,49 @@ export default function LearnPhase() {
   const Simulation = SIMULATION_MAP[stationKey] || RulerSimulation;
 
   return (
-    <div className={`min-h-screen w-full flex flex-col bg-gradient-to-b ${meta.color} pt-16 overflow-hidden`}>
+    <div className={`h-screen w-full flex flex-col bg-gradient-to-b ${meta.bg} pt-14 overflow-hidden`}>
 
-      {/* Station header */}
-      <div className="px-4 pt-4 pb-2 max-w-2xl mx-auto w-full">
-        <motion.div
-          key={stationKey}
-          initial={{ x: 20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="text-center"
-        >
-          <div className="inline-flex items-center gap-2 bg-white rounded-pill px-4 py-1.5 shadow-card mb-2">
-            <span className="text-lg">{meta.icon}</span>
-            <span className="text-xs font-extrabold text-inkMid uppercase tracking-wider">{meta.subtitle}</span>
+      {/* Station header band */}
+      <div className={`flex-shrink-0 border-b ${meta.accent} border-opacity-30 bg-black/20 px-4 py-2`}>
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+          <div>
+            <AnimatePresence mode="wait">
+              <motion.div key={stationKey} initial={{ x: -16, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 16, opacity: 0 }} transition={{ duration: 0.3 }}>
+                <p className="text-white/50 text-xs font-extrabold uppercase tracking-widest">{meta.tag}</p>
+                <h2 className="text-xl font-black text-white leading-tight">{meta.subtitle}</h2>
+                <p className="text-lg font-extrabold text-white/80">{meta.title}</p>
+              </motion.div>
+            </AnimatePresence>
           </div>
-          <h2 className="text-2xl font-black text-inkDark">{meta.title}</h2>
-        </motion.div>
+
+          {/* Station dots */}
+          <div className="flex gap-1.5 flex-shrink-0">
+            {STATIONS.map((s, i) => (
+              <div key={s}
+                className={`rounded-full transition-all duration-300 ${
+                  i < state.currentStation
+                    ? 'w-3 h-3 bg-teal-400'
+                    : i === state.currentStation
+                      ? 'w-4 h-4 bg-amber-400 shadow-glow scale-110'
+                      : 'w-3 h-3 bg-white/20'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Station progress dots */}
-      <div className="flex justify-center gap-2 py-2">
-        {STATIONS.map((s, i) => (
-          <div
-            key={s}
-            className={`w-3 h-3 rounded-full transition-all ${
-              i < state.currentStation ? 'bg-teal-500' :
-              i === state.currentStation ? 'bg-amber-500 scale-125 shadow-glow' :
-              'bg-gray-200'
-            }`}
-          />
-        ))}
-      </div>
-
-      {/* Simulation area */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Simulation fills remaining height, scrollable internally */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
         <AnimatePresence mode="wait">
           <motion.div
             key={stationKey}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.35 }}
+            className="h-full"
           >
             <Simulation />
           </motion.div>

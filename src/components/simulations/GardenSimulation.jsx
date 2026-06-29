@@ -4,28 +4,27 @@ import { usePhase } from '../../context/PhaseContext.jsx';
 import { useAudio } from '../../context/AudioContext.jsx';
 import { narrate, stopNarration } from '../../utils/audio.js';
 import { station2Narration } from '../../utils/narration.js';
-import CharacterBubble from '../ui/CharacterBubble.jsx';
 import CelebrationOverlay from '../ui/CelebrationOverlay.jsx';
 
 const OBJECTS = [
-  { name: 'Giant Sunflower', emoji: '🌻', trueM: 2, trueCm: 30, totalCm: 230 },
-  { name: 'Garden Bed', emoji: '🌱', trueM: 3, trueCm: 50, totalCm: 350 },
-  { name: 'Fence Panel', emoji: '🌿', trueM: 1, trueCm: 75, totalCm: 175 },
+  { name: 'Giant Sunflower', emoji: '🌻', trueM: 2, trueCm: 30 },
+  { name: 'Garden Fence',    emoji: '🌿', trueM: 3, trueCm: 50 },
+  { name: 'Trampoline',      emoji: '⭕', trueM: 1, trueCm: 80 },
 ];
 
 export default function GardenSimulation() {
   const { dispatch } = usePhase();
   const { audioEnabled } = useAudio();
-  const [objIndex, setObjIndex] = useState(0);
+  const [objIdx, setObjIdx] = useState(0);
   const [stickCount, setStickCount] = useState(0);
-  const [answered, setAnswered] = useState(false);
-  const [correct, setCorrect] = useState(null);
   const [userInput, setUserInput] = useState('');
+  const [answered, setAnswered] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(null);
   const [tokens, setTokens] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
 
-  const obj = OBJECTS[objIndex];
-  const maxSticks = obj.trueM + (obj.trueCm > 0 ? 1 : 0);
+  const obj = OBJECTS[objIdx];
+  const totalCm = obj.trueM * 100 + obj.trueCm;
 
   useEffect(() => {
     if (audioEnabled) narrate(station2Narration(), true);
@@ -33,22 +32,18 @@ export default function GardenSimulation() {
   }, [audioEnabled]);
 
   useEffect(() => {
-    setStickCount(0);
-    setAnswered(false);
-    setCorrect(null);
-    setUserInput('');
-  }, [objIndex]);
+    setStickCount(0); setUserInput(''); setAnswered(false); setIsCorrect(null);
+  }, [objIdx]);
 
   const handleAddStick = () => {
-    if (stickCount < maxSticks + 2) setStickCount(s => s + 1);
+    if (stickCount < obj.trueM + 2) setStickCount(s => s + 1);
   };
 
   const handleCheck = () => {
-    const userM = parseInt(userInput.split('m')[0]?.trim()) || 0;
-    const isCorrect = userM === obj.trueM;
-    setCorrect(isCorrect);
-    setAnswered(true);
-    if (isCorrect) {
+    const val = parseInt(userInput);
+    const correct = val === obj.trueM;
+    setIsCorrect(correct); setAnswered(true);
+    if (correct) {
       dispatch({ type: 'EARN_TOKEN', amount: 1 });
       setTokens(t => t + 1);
       setShowCelebration(true);
@@ -56,120 +51,148 @@ export default function GardenSimulation() {
   };
 
   const handleNext = () => {
-    if (objIndex < OBJECTS.length - 1) setObjIndex(i => i + 1);
+    if (objIdx < OBJECTS.length - 1) setObjIdx(i => i + 1);
     else dispatch({ type: 'COMPLETE_STATION', station: 'garden' });
   };
 
-  return (
-    <div className="flex flex-col items-center gap-5 px-4 py-4 max-w-2xl mx-auto w-full">
+  const STICK_COLORS = ['bg-teal-500', 'bg-teal-400', 'bg-teal-600'];
 
-      <div className="flex items-center gap-2 self-end bg-green-50 border border-green-200 rounded-pill px-3 py-1">
-        <span className="text-lg">🌿</span>
-        <span className="text-base font-extrabold text-green-700">{tokens} / {OBJECTS.length} tokens</span>
+  return (
+    <div className="flex flex-col gap-4 px-4 py-4 max-w-lg mx-auto w-full">
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 bg-green-900/30 border border-green-500/40 rounded-2xl px-3 py-2">
+          <span className="text-2xl">👩‍🌾</span>
+          <div>
+            <p className="text-xs font-extrabold text-green-300">LENA</p>
+            <p className="text-xs font-bold text-white/70">The Gardener</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 bg-green-900/30 border border-green-500/40 rounded-pill px-3 py-2">
+          <span className="text-xl">🌿</span>
+          <span className="text-base font-black text-green-300">{tokens}/{OBJECTS.length}</span>
+        </div>
       </div>
 
-      <CharacterBubble character="jake" position="left" text="This ruler is too small! Use the metre stick for big things — 1 metre = 100 cm! 📐" />
-
-      <motion.div
-        key={objIndex}
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-full bg-white rounded-card shadow-card p-5 border-2 border-green-100"
-      >
-        <div className="text-center mb-4">
-          <div className="text-6xl mb-2">{obj.emoji}</div>
-          <p className="text-xl font-extrabold text-inkDark">{obj.name}</p>
-          <p className="text-base font-bold text-green-600">Actual length: {obj.trueM} m {obj.trueCm} cm</p>
+      {/* Key formula */}
+      <div className="bg-teal-500/15 border border-teal-400/40 rounded-2xl px-5 py-3">
+        <div className="flex items-center justify-center gap-3">
+          <div className="text-center">
+            <p className="text-2xl font-black text-teal-300">1 m</p>
+            <p className="text-xs font-bold text-white/50">metre</p>
+          </div>
+          <p className="text-2xl font-black text-white/50">=</p>
+          <div className="text-center">
+            <p className="text-2xl font-black text-amber-300">100 cm</p>
+            <p className="text-xs font-bold text-white/50">centimetres</p>
+          </div>
         </div>
+      </div>
 
-        {/* Metre stick visualisation */}
-        <div className="bg-green-50 rounded-xl p-4 mb-4">
-          <p className="text-sm font-extrabold text-inkMid mb-3 text-center">
-            Click to place metre sticks ({stickCount} placed):
-          </p>
-
-          <div className="flex items-end gap-1 min-h-12 flex-wrap mb-3">
-            {Array.from({ length: stickCount }, (_, i) => (
-              <motion.div
-                key={i}
-                initial={{ scale: 0, y: -10 }}
-                animate={{ scale: 1, y: 0 }}
-                className={`h-10 rounded text-white text-xs font-extrabold flex items-center justify-center ${
-                  i < obj.trueM ? 'bg-teal-500' : 'bg-amber-400'
-                }`}
-                style={{ width: i < obj.trueM ? '60px' : `${(obj.trueCm / 100) * 60}px`, minWidth: '10px' }}
-              >
-                {i < obj.trueM ? '1m' : `${obj.trueCm}cm`}
-              </motion.div>
-            ))}
+      {/* Main object card */}
+      <AnimatePresence mode="wait">
+        <motion.div key={objIdx}
+          initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.3 }}
+          className="bg-white rounded-2xl shadow-float overflow-hidden border-2 border-green-200"
+        >
+          {/* Object header */}
+          <div className="flex items-center gap-4 px-5 py-4 border-b border-green-100">
+            <span className="text-5xl">{obj.emoji}</span>
+            <div>
+              <p className="text-2xl font-black text-gray-800">{obj.name}</p>
+              <p className="text-sm font-bold text-gray-500">
+                {obj.trueM} m {obj.trueCm} cm = {totalCm} cm total
+              </p>
+            </div>
           </div>
 
-          <button
-            onClick={handleAddStick}
-            className="w-full py-3 bg-teal-500 hover:bg-teal-600 text-white font-extrabold rounded-bubble transition-all active:scale-95"
-          >
-            📐 Place Metre Stick
-          </button>
-
-          {stickCount > 0 && (
-            <p className="text-center text-sm font-bold text-inkMid mt-2">
-              Total: {stickCount === obj.trueM ? `${obj.trueM} m` : `${stickCount} m`}
-              {stickCount > obj.trueM && ` + ${obj.trueCm} cm`}
+          {/* Metre stick visualizer */}
+          <div className="px-5 py-4 bg-green-50">
+            <p className="text-sm font-extrabold text-gray-600 mb-3 text-center">
+              Click to place metre sticks — how many <span className="text-teal-600 font-black">whole metres</span>?
             </p>
-          )}
-        </div>
 
-        {/* Answer input */}
-        {!answered && stickCount >= obj.trueM && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="text-base font-extrabold text-inkDark mb-2">
-              How many full metres long is the {obj.name}?
-            </p>
-            <div className="flex gap-3">
-              <input
-                type="number"
-                value={userInput}
-                onChange={e => setUserInput(e.target.value)}
-                placeholder={`? metres`}
-                className="flex-1 border-2 border-gray-200 rounded-bubble px-4 py-3 text-xl font-extrabold text-center focus:outline-none focus:border-teal-400"
-                min="0"
-                max="10"
-              />
-              <button onClick={handleCheck} className="btn-secondary text-base px-5 py-3">
-                Check ✓
-              </button>
+            {/* Stick display */}
+            <div className="flex flex-wrap gap-1.5 min-h-[52px] items-center bg-white rounded-xl p-3 mb-3 border border-green-200">
+              {Array.from({ length: stickCount }, (_, i) => (
+                <motion.div key={i}
+                  initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }}
+                  className={`h-12 rounded-lg text-white text-xs font-extrabold flex items-center justify-center ${STICK_COLORS[i % 3]}`}
+                  style={{ width: '56px' }}
+                >
+                  1 m
+                </motion.div>
+              ))}
+              {stickCount === 0 && (
+                <p className="text-gray-400 text-sm font-bold w-full text-center">Tap the button to place sticks!</p>
+              )}
             </div>
-          </motion.div>
-        )}
 
-        {/* Feedback */}
-        {answered && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`rounded-bubble p-4 text-center border-2 ${correct ? 'bg-teal-50 border-teal-300' : 'bg-red-50 border-red-200'}`}
-          >
-            <div className="text-3xl mb-1">{correct ? '🎉' : '🤔'}</div>
-            <p className="font-extrabold text-lg">
-              {correct ? `Correct! It is ${obj.trueM} m ${obj.trueCm} cm!` : `It was ${obj.trueM} m ${obj.trueCm} cm!`}
-            </p>
-            <button onClick={handleNext} className="mt-3 btn-primary text-base px-6 py-3">
-              {objIndex < OBJECTS.length - 1 ? 'Next Object →' : '✅ Complete Station!'}
+            <button onClick={handleAddStick}
+              className="w-full py-3 bg-teal-500 hover:bg-teal-600 text-white font-extrabold text-lg rounded-2xl transition-all active:scale-95">
+              📐 Place Metre Stick ({stickCount} placed)
             </button>
-          </motion.div>
-        )}
-      </motion.div>
+          </div>
+
+          {/* Answer */}
+          <div className="px-5 py-4">
+            {!answered ? (
+              stickCount > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-lg font-extrabold text-gray-700">
+                    How many <span className="text-teal-600">full metres</span> is the {obj.name}?
+                  </p>
+                  <div className="flex gap-3">
+                    <input type="number" value={userInput}
+                      onChange={e => setUserInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && userInput && handleCheck()}
+                      placeholder="? metres"
+                      className="flex-1 border-2 border-gray-200 rounded-2xl px-4 py-3 text-2xl font-black text-center focus:outline-none focus:border-teal-400" />
+                    <button onClick={handleCheck} disabled={!userInput}
+                      className="bg-teal-500 hover:bg-teal-600 text-white font-black text-lg px-6 rounded-2xl transition-all active:scale-95">
+                      Check ✓
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-base font-bold text-gray-500 text-center py-2">Place metre sticks first! 👆</p>
+              )
+            ) : (
+              <AnimatePresence>
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  className={`rounded-2xl p-4 text-center border-2 ${isCorrect ? 'bg-teal-50 border-teal-400' : 'bg-red-50 border-red-300'}`}
+                >
+                  <div className="text-4xl mb-2">{isCorrect ? '🎉' : '🤔'}</div>
+                  <p className="font-black text-xl text-gray-800">
+                    {isCorrect ? `Correct! ${obj.trueM} m ${obj.trueCm} cm!` : `It was ${obj.trueM} m ${obj.trueCm} cm!`}
+                  </p>
+                  <button onClick={handleNext}
+                    className="mt-3 bg-teal-500 hover:bg-teal-600 text-white font-black text-lg px-8 py-3 rounded-pill transition-all active:scale-95">
+                    {objIdx < OBJECTS.length - 1 ? 'Next Object →' : '✅ Complete Station!'}
+                  </button>
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </div>
+        </motion.div>
+      </AnimatePresence>
 
       {/* Key facts */}
-      <div className="w-full bg-teal-50 border border-teal-200 rounded-card p-4">
-        <p className="text-sm font-extrabold text-teal-700 mb-2">📌 Key Facts:</p>
-        <ul className="space-y-1">
-          {['1 metre (m) = 100 centimetres (cm)', 'Use metres for long objects like rooms, gardens, fences', 'Use centimetres for smaller objects like pencils and books'].map(f => (
-            <li key={f} className="text-sm font-bold text-inkDark flex items-start gap-2">
-              <span className="text-teal-500 mt-0.5">✓</span>{f}
-            </li>
+      <div className="bg-white/10 border border-white/20 rounded-2xl p-3">
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { icon: '📐', fact: '1 m = 100 cm' },
+            { icon: '🏠', fact: 'Rooms use metres' },
+            { icon: '✏️', fact: 'Pencils use cm' },
+          ].map(f => (
+            <div key={f.fact} className="bg-white/5 rounded-xl p-2 text-center">
+              <div className="text-xl mb-1">{f.icon}</div>
+              <p className="text-xs font-extrabold text-white/80">{f.fact}</p>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
 
       <CelebrationOverlay show={showCelebration} message="🌿 Token earned!" onDone={() => setShowCelebration(false)} />

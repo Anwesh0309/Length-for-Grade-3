@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePhase, PHASES } from '../../context/PhaseContext.jsx';
 import { useAudio } from '../../context/AudioContext.jsx';
 import { narrate, stopNarration } from '../../utils/audio.js';
 import { reflectNarration } from '../../utils/narration.js';
 
 const CARDS = [
-  { icon: '📏', title: 'Rulers', fact: 'Measure in mm and cm. Always start from ZERO! 10 mm = 1 cm.', color: 'from-amber-50 to-yellow-50 border-amber-200', textColor: 'text-amber-800' },
-  { icon: '📐', title: 'Metres', fact: '1 m = 100 cm. Use metres for long objects like rooms and roads.', color: 'from-teal-50 to-green-50 border-teal-200', textColor: 'text-teal-800' },
-  { icon: '🤚', title: 'Estimation', fact: 'Use body benchmarks: finger ≈ 1cm, hand ≈ 15cm, arm ≈ 60cm, door ≈ 2m.', color: 'from-yellow-50 to-orange-50 border-yellow-200', textColor: 'text-yellow-800' },
-  { icon: '🔄', title: 'Conversion', fact: 'Multiply × 100 to convert m → cm. Divide ÷ 100 for cm → m.', color: 'from-blue-50 to-purple-50 border-blue-200', textColor: 'text-blue-800' },
-  { icon: '⚖️', title: 'Comparing', fact: 'Always convert to the SAME unit before comparing lengths!', color: 'from-pink-50 to-coral-50 border-pink-200', textColor: 'text-pink-800' },
-  { icon: '➕', title: 'Word Problems', fact: 'Identify what to find, write the calculation, then solve step by step!', color: 'from-purple-50 to-indigo-50 border-purple-200', textColor: 'text-purple-800' },
+  { icon: '📏', title: 'Rulers', fact: 'Start from ZERO. Read mm and cm for small objects.', sub: '10 mm = 1 cm', color: 'border-amber-400 bg-amber-50', titleColor: 'text-amber-800' },
+  { icon: '📐', title: 'Metres',  fact: '1 m = 100 cm. Use metres for rooms, roads, gardens.', sub: 'Big objects → metres', color: 'border-teal-400 bg-teal-50', titleColor: 'text-teal-800' },
+  { icon: '🤚', title: 'Estimation', fact: 'Use your body! Finger ≈ 1 cm, hand ≈ 15 cm, arm ≈ 60 cm.', sub: 'Estimate before measuring', color: 'border-yellow-400 bg-yellow-50', titleColor: 'text-yellow-800' },
+  { icon: '🔄', title: 'Converting', fact: 'Metres → cm: × 100. Centimetres → m: ÷ 100.', sub: '3 m = 300 cm', color: 'border-blue-400 bg-blue-50', titleColor: 'text-blue-800' },
+  { icon: '⚖️', title: 'Comparing', fact: 'Convert to the SAME unit, then compare.', sub: 'Then use > < =', color: 'border-pink-400 bg-pink-50', titleColor: 'text-pink-800' },
+  { icon: '➕', title: 'Word Problems', fact: 'Read → Find → Calculate → Check your answer!', sub: '4-step strategy', color: 'border-purple-400 bg-purple-50', titleColor: 'text-purple-800' },
 ];
 
 export default function ReflectPhase() {
   const { dispatch } = usePhase();
   const { audioEnabled } = useAudio();
-  const [visibleCount, setVisibleCount] = useState(0);
+  const [visible, setVisible] = useState(0);
 
   useEffect(() => {
     if (audioEnabled) narrate(reflectNarration(), true);
@@ -25,68 +25,65 @@ export default function ReflectPhase() {
   }, [audioEnabled]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setVisibleCount(c => {
-        if (c < CARDS.length) return c + 1;
-        clearInterval(timer);
-        return c;
-      });
-    }, 600);
-    return () => clearInterval(timer);
-  }, []);
+    if (visible >= CARDS.length) return;
+    const t = setTimeout(() => setVisible(v => v + 1), 500);
+    return () => clearTimeout(t);
+  }, [visible]);
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-gradient-to-b from-amber-50 to-cream pt-16 overflow-hidden">
-      <div className="flex-1 flex flex-col items-center px-4 py-6 gap-5 max-w-2xl mx-auto w-full">
+    <div className="h-screen w-full flex flex-col bg-gradient-to-b from-amber-900/80 to-[#1A1A2E] overflow-hidden pt-14">
+      <div className="flex-1 flex flex-col px-4 py-3 max-w-2xl mx-auto w-full overflow-y-auto">
 
         {/* Header */}
-        <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center">
-          <div className="text-5xl mb-2">🪞</div>
-          <h2 className="text-3xl font-black text-inkDark mb-1">What You Learned!</h2>
-          <p className="text-base font-bold text-inkMid">6 big ideas from your measurement adventure</p>
+        <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-center mb-4">
+          <div className="text-5xl mb-1">🪞</div>
+          <h2 className="text-3xl font-black text-white">What You Learned!</h2>
+          <p className="text-base font-bold text-white/60">6 big ideas from your measurement adventure</p>
         </motion.div>
 
-        {/* Characters recap */}
-        <div className="flex justify-center gap-6">
+        {/* Characters */}
+        <div className="flex justify-center gap-8 mb-4">
           {[
-            { emoji: '👧', name: 'Maya', color: 'text-amber-600' },
-            { emoji: '👦', name: 'Jake', color: 'text-teal-600' },
-            { emoji: '👧🏻', name: 'Sofia', color: 'text-purple-600' },
-          ].map(c => (
-            <div key={c.name} className="flex flex-col items-center gap-1">
-              <div className="text-4xl animate-float">{c.emoji}</div>
+            { emoji: '👧', name: 'Emma',   color: 'text-amber-300' },
+            { emoji: '👦', name: 'Oliver', color: 'text-teal-300' },
+            { emoji: '👧🏻', name: 'Lily',   color: 'text-purple-300' },
+          ].map((c, i) => (
+            <div key={c.name} className="flex flex-col items-center gap-1"
+              style={{ animation: `float ${2.5 + i * 0.3}s ease-in-out infinite`, animationDelay: `${i * 0.2}s` }}>
+              <div className="text-4xl">{c.emoji}</div>
               <span className={`text-xs font-extrabold ${c.color}`}>{c.name}</span>
             </div>
           ))}
         </div>
 
-        {/* Summary cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        {/* Summary cards — 2 columns */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
           {CARDS.map((card, i) => (
-            i < visibleCount ? (
-              <motion.div
-                key={card.title}
+            i < visible ? (
+              <motion.div key={card.title}
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className={`bg-gradient-to-br ${card.color} border-2 rounded-card p-4`}
+                transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+                className={`${card.color} border-2 rounded-2xl p-3`}
               >
-                <div className="flex items-start gap-3">
-                  <span className="text-3xl">{card.icon}</span>
+                <div className="flex items-start gap-2">
+                  <span className="text-2xl flex-shrink-0">{card.icon}</span>
                   <div>
-                    <p className={`font-black text-lg ${card.textColor} mb-1`}>{card.title}</p>
-                    <p className="text-sm font-bold text-inkDark leading-relaxed">{card.fact}</p>
+                    <p className={`font-black text-base ${card.titleColor}`}>{card.title}</p>
+                    <p className="text-xs font-bold text-gray-700 leading-snug mt-0.5">{card.fact}</p>
+                    <div className="mt-1 bg-white/60 rounded-pill px-2 py-0.5 inline-block">
+                      <p className="text-xs font-extrabold text-gray-600">{card.sub}</p>
+                    </div>
                   </div>
                 </div>
               </motion.div>
             ) : (
-              <div key={card.title} className="bg-gray-100 border-2 border-gray-200 rounded-card p-4 opacity-30">
-                <div className="flex items-start gap-3">
-                  <span className="text-3xl grayscale">{card.icon}</span>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-300 rounded w-1/3" />
-                    <div className="h-3 bg-gray-200 rounded w-full" />
-                    <div className="h-3 bg-gray-200 rounded w-4/5" />
+              <div key={card.title} className="border-2 border-white/10 bg-white/5 rounded-2xl p-3 opacity-30">
+                <div className="flex items-start gap-2">
+                  <span className="text-2xl grayscale">{card.icon}</span>
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-3 bg-white/20 rounded w-1/2" />
+                    <div className="h-2.5 bg-white/10 rounded w-full" />
                   </div>
                 </div>
               </div>
@@ -95,27 +92,26 @@ export default function ReflectPhase() {
         </div>
 
         {/* CTA */}
-        {visibleCount >= CARDS.length && (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="flex flex-col items-center gap-4 w-full"
-          >
-            <div className="bg-gradient-to-r from-teal-50 to-amber-50 border-2 border-teal-200 rounded-card p-4 text-center w-full">
-              <p className="text-xl font-extrabold text-inkDark">🎮 Ready to test your skills?</p>
-              <p className="text-base font-bold text-inkMid mt-1">12 practice questions await!</p>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => dispatch({ type: 'SET_PHASE', phase: PHASES.PRACTICE })}
-              className="btn-primary flex items-center gap-2"
-            >
-              🎮 Start Practice! →
-            </motion.button>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {visible >= CARDS.length && (
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="space-y-3 pb-4">
+              <div className="bg-white/10 border border-white/20 rounded-2xl p-4 text-center">
+                <p className="text-xl font-extrabold text-white">🎮 Ready to test your skills?</p>
+                <p className="text-sm font-bold text-white/60 mt-1">12 randomised practice questions — 3 stars possible!</p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}
+                onClick={() => dispatch({ type: 'SET_PHASE', phase: PHASES.PRACTICE })}
+                className="w-full bg-amber-500 hover:bg-amber-400 text-white font-black text-xl py-4 rounded-pill shadow-glow flex items-center justify-center gap-2 transition-all"
+              >
+                🎮 Start Practice! →
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      <style>{`@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}`}</style>
     </div>
   );
 }

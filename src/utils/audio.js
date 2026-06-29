@@ -1,9 +1,9 @@
 // Audio Engine — ElevenLabs pre-generated + dynamic fallback
+import { audioMap } from './audioMap.js';
 
 let currentAudio = null;
 let audioQueue = [];
 let isPlaying = false;
-let preloadedAudios = {};
 
 // Helper: generate filename from text + style (matches generate_audio.js)
 function textToFilename(text, style) {
@@ -19,6 +19,10 @@ function textToFilename(text, style) {
 
 // Try loading from static assets first, fallback to ElevenLabs API
 async function fetchAudio(text, style) {
+  // 1. Check pre-generated audioMap for instant lookup
+  if (audioMap[text]) return audioMap[text];
+
+  // 2. Try filename-based static file
   const filename = textToFilename(text, style);
   const staticUrl = `/assets/audio/${filename}`;
 

@@ -7,53 +7,49 @@ import { usePhase } from '../../context/PhaseContext.jsx';
 import { useAudio } from '../../context/AudioContext.jsx';
 import { narrate, stopNarration } from '../../utils/audio.js';
 import { station5Narration } from '../../utils/narration.js';
-import CharacterBubble from '../ui/CharacterBubble.jsx';
 import CelebrationOverlay from '../ui/CelebrationOverlay.jsx';
 
 const ROUNDS = [
   {
     athletes: [
-      { name: 'Emma', lengthCm: 145, display: '145 cm' },
-      { name: 'Oliver', lengthCm: 152, display: '1 m 52 cm' },
-      { name: 'Grace', lengthCm: 138, display: '138 cm' },
+      { name: 'Emma',      lengthCm: 145, display: '145 cm',       color: '#F59E0B' },
+      { name: 'Charlotte', lengthCm: 152, display: '1 m 52 cm',    color: '#14B8A6' },
+      { name: 'Grace',     lengthCm: 138, display: '138 cm',       color: '#A855F7' },
     ],
   },
   {
     athletes: [
-      { name: 'Noah', lengthCm: 200, display: '2 m' },
-      { name: 'Liam', lengthCm: 175, display: '175 cm' },
-      { name: 'Charlotte', lengthCm: 1 * 100 + 90, display: '1 m 90 cm' },
+      { name: 'Noah',  lengthCm: 200, display: '2 m',        color: '#F43F5E' },
+      { name: 'Liam',  lengthCm: 175, display: '175 cm',     color: '#3B82F6' },
+      { name: 'James', lengthCm: 190, display: '1 m 90 cm',  color: '#10B981' },
     ],
   },
   {
     athletes: [
-      { name: 'Ava', lengthCm: 88, display: '88 cm' },
-      { name: 'Ethan', lengthCm: 100, display: '1 m' },
-      { name: 'James', lengthCm: 95, display: '95 cm' },
+      { name: 'Ava',   lengthCm: 88,  display: '88 cm',  color: '#F97316' },
+      { name: 'Ethan', lengthCm: 100, display: '1 m',    color: '#6366F1' },
+      { name: 'Lily',  lengthCm: 95,  display: '95 cm',  color: '#EC4899' },
     ],
   },
 ];
 
-function SortableItem({ id, name, display, index }) {
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+function SortableAthlete({ id, name, display, color, index, checked, correctIndex }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition };
-  const colors = ['bg-coral-400', 'bg-teal-500', 'bg-purple-500'];
-  const emojis = ['🥇', '🥈', '🥉'];
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`flex items-center gap-3 p-3 rounded-bubble border-2 border-white bg-white shadow-card cursor-grab active:cursor-grabbing select-none ${isDragging ? 'opacity-50 shadow-float' : ''}`}
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}
+      className={`flex items-center gap-3 p-3 rounded-2xl border-2 bg-white font-extrabold cursor-grab active:cursor-grabbing select-none transition-all ${isDragging ? 'opacity-50 shadow-float scale-105' : 'shadow-card'} ${checked ? 'border-gray-200' : 'border-gray-200 hover:border-gray-400'}`}
     >
-      <span className="text-2xl">{emojis[index] || '🏃'}</span>
+      <span className="text-2xl">{MEDALS[index] || '🏃'}</span>
       <div className="flex-1">
-        <p className="font-extrabold text-base text-inkDark">{name}</p>
-        <p className="font-bold text-sm text-inkMid">{display}</p>
+        <p className="text-base font-black text-gray-800">{name}</p>
+        <p className="text-sm font-bold text-gray-500">{display}</p>
       </div>
-      <span className="text-inkLight text-xl">⠿</span>
+      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+      <span className="text-gray-300 text-lg">⠿</span>
     </div>
   );
 }
@@ -61,19 +57,19 @@ function SortableItem({ id, name, display, index }) {
 export default function RaceTrackSimulation() {
   const { dispatch } = usePhase();
   const { audioEnabled } = useAudio();
-  const [roundIndex, setRoundIndex] = useState(0);
+  const [roundIdx, setRoundIdx] = useState(0);
   const [items, setItems] = useState(() => [...ROUNDS[0].athletes]);
   const [checked, setChecked] = useState(false);
-  const [correct, setCorrect] = useState(null);
+  const [isCorrect, setIsCorrect] = useState(null);
   const [tokens, setTokens] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 5 } }),
   );
 
-  const round = ROUNDS[roundIndex];
+  const round = ROUNDS[roundIdx];
 
   useEffect(() => {
     if (audioEnabled) narrate(station5Narration(), true);
@@ -81,26 +77,24 @@ export default function RaceTrackSimulation() {
   }, [audioEnabled]);
 
   useEffect(() => {
-    setItems([...ROUNDS[roundIndex].athletes]);
-    setChecked(false);
-    setCorrect(null);
-  }, [roundIndex]);
+    setItems([...ROUNDS[roundIdx].athletes]);
+    setChecked(false); setIsCorrect(null);
+  }, [roundIdx]);
 
   const handleDragEnd = ({ active, over }) => {
     if (!over || active.id === over.id || checked) return;
     setItems(prev => {
-      const oldIndex = prev.findIndex(i => i.name === active.id);
-      const newIndex = prev.findIndex(i => i.name === over.id);
-      return arrayMove(prev, oldIndex, newIndex);
+      const oi = prev.findIndex(a => a.name === active.id);
+      const ni = prev.findIndex(a => a.name === over.id);
+      return arrayMove(prev, oi, ni);
     });
   };
 
   const handleCheck = () => {
     const sorted = [...round.athletes].sort((a, b) => a.lengthCm - b.lengthCm);
-    const isCorrect = items.every((item, i) => item.name === sorted[i].name);
-    setChecked(true);
-    setCorrect(isCorrect);
-    if (isCorrect) {
+    const correct = items.every((item, i) => item.name === sorted[i].name);
+    setChecked(true); setIsCorrect(correct);
+    if (correct) {
       dispatch({ type: 'EARN_TOKEN', amount: 1 });
       setTokens(t => t + 1);
       setShowCelebration(true);
@@ -108,106 +102,119 @@ export default function RaceTrackSimulation() {
   };
 
   const handleNext = () => {
-    if (roundIndex < ROUNDS.length - 1) setRoundIndex(i => i + 1);
+    if (roundIdx < ROUNDS.length - 1) setRoundIdx(i => i + 1);
     else dispatch({ type: 'COMPLETE_STATION', station: 'racetrack' });
   };
 
   const correctOrder = [...round.athletes].sort((a, b) => a.lengthCm - b.lengthCm);
 
   return (
-    <div className="flex flex-col items-center gap-5 px-4 py-4 max-w-2xl mx-auto w-full">
+    <div className="flex flex-col gap-4 px-4 py-4 max-w-lg mx-auto w-full">
 
-      <div className="flex items-center gap-2 self-end bg-pink-50 border border-pink-200 rounded-pill px-3 py-1">
-        <span className="text-lg">🏅</span>
-        <span className="text-base font-extrabold text-pink-700">{tokens} / {ROUNDS.length} medals</span>
-      </div>
-
-      <CharacterBubble character="sofia" position="left"
-        text="Convert to the SAME unit before comparing! Then order from shortest to longest! ⚖️" />
-
-      <motion.div
-        key={roundIndex}
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-full bg-white rounded-card shadow-card p-5 border-2 border-pink-100"
-      >
-        {/* Stadium header */}
-        <div className="bg-gradient-to-r from-pink-50 to-coral-50 rounded-xl p-3 text-center mb-4">
-          <div className="text-4xl mb-1">🏟️</div>
-          <p className="text-xl font-extrabold text-inkDark">Drag to order: SHORTEST → LONGEST</p>
-          <p className="text-sm font-bold text-inkMid">Round {roundIndex + 1} of {ROUNDS.length}</p>
-        </div>
-
-        {/* Convert hint */}
-        <div className="bg-amber-50 border border-amber-200 rounded-bubble p-2 mb-3 text-center">
-          <p className="text-xs font-extrabold text-amber-700">
-            💡 Tip: Convert everything to cm first! 1m = 100cm
-          </p>
-          <div className="flex justify-center gap-2 mt-1 flex-wrap">
-            {round.athletes.map(a => (
-              <span key={a.name} className="text-xs font-bold bg-white rounded-pill px-2 py-0.5 border border-amber-200">
-                {a.name}: {a.display} = {a.lengthCm} cm
-              </span>
-            ))}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 bg-pink-900/30 border border-pink-500/40 rounded-2xl px-3 py-2">
+          <span className="text-2xl">🏃</span>
+          <div>
+            <p className="text-xs font-extrabold text-pink-300">AISHA & MARCO</p>
+            <p className="text-xs font-bold text-white/70">Race Track, Kenya</p>
           </div>
         </div>
+        <div className="flex items-center gap-1.5 bg-pink-900/30 border border-pink-500/40 rounded-pill px-3 py-2">
+          <span className="text-xl">🏅</span>
+          <span className="text-base font-black text-pink-300">{tokens}/{ROUNDS.length}</span>
+        </div>
+      </div>
 
-        {/* Drag list */}
-        {!checked ? (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={items.map(i => i.name)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2 mb-4">
-                {items.map((item, index) => (
-                  <SortableItem key={item.name} id={item.name} {...item} index={index} />
+      {/* Key rule */}
+      <div className="bg-pink-500/15 border border-pink-400/40 rounded-2xl px-4 py-3 text-center">
+        <p className="text-base font-extrabold text-white">
+          ⚖️ Convert to the <span className="text-pink-300 font-black">SAME UNIT</span> before comparing!
+        </p>
+        <p className="text-xs font-bold text-white/60 mt-0.5">1 m = 100 cm · smaller number = shorter length</p>
+      </div>
+
+      {/* Round progress */}
+      <div className="flex gap-1.5">
+        {ROUNDS.map((_, i) => (
+          <div key={i} className={`flex-1 h-2.5 rounded-pill ${i < roundIdx ? 'bg-teal-500' : i === roundIdx ? 'bg-pink-400' : 'bg-white/15'}`} />
+        ))}
+      </div>
+
+      {/* Main card */}
+      <AnimatePresence mode="wait">
+        <motion.div key={roundIdx}
+          initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.3 }}
+          className="bg-white rounded-2xl shadow-float overflow-hidden"
+        >
+          {/* Stadium header */}
+          <div className="bg-gradient-to-br from-pink-500 to-rose-600 px-5 py-4 text-center">
+            <div className="text-4xl mb-1">🏟️</div>
+            <p className="text-xl font-black text-white">Round {roundIdx + 1} of {ROUNDS.length}</p>
+            <p className="text-sm font-bold text-pink-100">Drag to order SHORTEST → LONGEST</p>
+          </div>
+
+          {/* Cm conversion hint */}
+          <div className="bg-amber-50 border-b border-amber-100 px-4 py-2">
+            <p className="text-xs font-extrabold text-amber-700 text-center mb-1">💡 All lengths in cm:</p>
+            <div className="flex justify-center gap-3 flex-wrap">
+              {round.athletes.map(a => (
+                <div key={a.name} className="text-xs font-bold text-gray-700 bg-white border border-amber-200 rounded-pill px-2 py-0.5">
+                  <span style={{ color: a.color }}>●</span> {a.name}: {a.lengthCm} cm
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="px-4 py-4 space-y-3">
+            {!checked ? (
+              <>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={items.map(a => a.name)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-2">
+                      {items.map((athlete, i) => (
+                        <SortableAthlete key={athlete.name} id={athlete.name} {...athlete} index={i} checked={false} />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+                <button onClick={handleCheck}
+                  className="w-full bg-pink-500 hover:bg-pink-600 text-white font-black text-xl py-4 rounded-pill transition-all active:scale-95">
+                  ✓ Check Order!
+                </button>
+              </>
+            ) : (
+              <div className="space-y-2">
+                {correctOrder.map((athlete, i) => (
+                  <div key={athlete.name}
+                    className={`flex items-center gap-3 p-3 rounded-2xl border-2 ${isCorrect ? 'bg-teal-50 border-teal-300' : 'bg-orange-50 border-orange-200'}`}
+                  >
+                    <span className="text-2xl">{MEDALS[i]}</span>
+                    <div className="flex-1">
+                      <p className="font-black text-base text-gray-800">{athlete.name}</p>
+                      <p className="text-sm font-bold text-gray-500">{athlete.display} = {athlete.lengthCm} cm</p>
+                    </div>
+                  </div>
                 ))}
               </div>
-            </SortableContext>
-          </DndContext>
-        ) : (
-          <div className="space-y-2 mb-4">
-            {correctOrder.map((item, index) => {
-              const emojis = ['🥇 1st', '🥈 2nd', '🥉 3rd'];
-              return (
-                <div key={item.name} className={`flex items-center gap-3 p-3 rounded-bubble border-2 ${correct ? 'bg-teal-50 border-teal-300' : 'bg-orange-50 border-orange-200'}`}>
-                  <span className="font-extrabold text-base">{emojis[index]}</span>
-                  <div className="flex-1">
-                    <p className="font-extrabold text-base">{item.name}</p>
-                    <p className="text-sm font-bold text-inkMid">{item.display} = {item.lengthCm} cm</p>
-                  </div>
-                </div>
-              );
-            })}
+            )}
+
+            {checked && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className={`rounded-2xl p-4 text-center border-2 ${isCorrect ? 'bg-teal-50 border-teal-400' : 'bg-orange-50 border-orange-200'}`}
+              >
+                <div className="text-3xl mb-1">{isCorrect ? '🎉' : '🤔'}</div>
+                <p className="font-black text-xl text-gray-800">{isCorrect ? 'Perfect order! 🏅' : 'Correct order shown above!'}</p>
+                <button onClick={handleNext}
+                  className="mt-3 bg-pink-500 hover:bg-pink-600 text-white font-black text-lg px-8 py-3 rounded-pill transition-all active:scale-95">
+                  {roundIdx < ROUNDS.length - 1 ? 'Next Round →' : '✅ Complete Station!'}
+                </button>
+              </motion.div>
+            )}
           </div>
-        )}
-
-        {!checked && (
-          <button onClick={handleCheck} className="btn-primary w-full">
-            ✓ Check Order!
-          </button>
-        )}
-
-        {checked && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className={`rounded-bubble p-4 text-center border-2 ${correct ? 'bg-teal-50 border-teal-300' : 'bg-orange-50 border-orange-200'}`}>
-            <div className="text-3xl mb-1">{correct ? '🎉' : '🤔'}</div>
-            <p className="font-extrabold text-lg">{correct ? 'Perfect order! 🏅' : 'The correct order is shown above!'}</p>
-            <button onClick={handleNext} className="mt-3 btn-primary text-base px-6 py-3">
-              {roundIndex < ROUNDS.length - 1 ? 'Next Round →' : '✅ Complete Station!'}
-            </button>
-          </motion.div>
-        )}
-      </motion.div>
-
-      <div className="w-full bg-pink-50 border border-pink-200 rounded-card p-4">
-        <p className="text-sm font-extrabold text-pink-700 mb-2">📌 Key Facts:</p>
-        <ul className="space-y-1">
-          {['Always convert to the same unit before comparing', 'Smaller number = shorter length', 'Use >, <, = to compare two lengths'].map(f => (
-            <li key={f} className="text-sm font-bold text-inkDark flex items-start gap-2">
-              <span className="text-pink-500 mt-0.5">✓</span>{f}
-            </li>
-          ))}
-        </ul>
-      </div>
+        </motion.div>
+      </AnimatePresence>
 
       <CelebrationOverlay show={showCelebration} message="🏅 Medal earned!" onDone={() => setShowCelebration(false)} />
     </div>

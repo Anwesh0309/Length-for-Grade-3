@@ -4,57 +4,67 @@ import { usePhase } from '../../context/PhaseContext.jsx';
 import { useAudio } from '../../context/AudioContext.jsx';
 import { narrate, stopNarration } from '../../utils/audio.js';
 import { station6Narration } from '../../utils/narration.js';
-import CharacterBubble from '../ui/CharacterBubble.jsx';
 import CelebrationOverlay from '../ui/CelebrationOverlay.jsx';
 
 const PROBLEMS = [
   {
-    text: "The path to the treasure has 3 sections. The first is 45 m long. The second is twice as long. The third is 30 m shorter than the second. How long is the whole path?",
+    title: 'The Three Paths',
+    emoji: '🗺️',
+    bg: 'from-purple-600 to-indigo-700',
+    text: "The path to the treasure has 3 sections. Section 1 is 45 m long. Section 2 is twice as long. Section 3 is 30 m shorter than Section 2. How long is the whole path?",
     steps: [
-      { label: 'Section 1', value: 45, color: 'bg-amber-200' },
-      { label: 'Section 2 (× 2)', value: 90, color: 'bg-teal-200' },
-      { label: 'Section 3 (−30)', value: 60, color: 'bg-purple-200' },
+      { label: 'Section 1', calc: '45 m', value: 45, color: 'bg-amber-200' },
+      { label: 'Section 2 = 45 × 2', calc: '90 m', value: 90, color: 'bg-teal-200' },
+      { label: 'Section 3 = 90 − 30', calc: '60 m', value: 60, color: 'bg-purple-200' },
+      { label: 'TOTAL = 45 + 90 + 60', calc: '195 m', value: 195, color: 'bg-pink-200', isTotal: true },
     ],
     answer: 195,
     unit: 'm',
-    emoji: '🗺️',
+    prompt: 'How many metres is the whole path?',
   },
   {
-    text: "Emma's ribbon is 1 m 20 cm long. She cuts off 35 cm. How much ribbon is left?",
+    title: "Emma's Ribbon",
+    emoji: '🎀',
+    bg: 'from-pink-500 to-rose-600',
+    text: "Emma has a ribbon that is 1 m 20 cm long. She cuts off 35 cm. How much ribbon is left?",
     steps: [
-      { label: 'Total ribbon', value: 120, color: 'bg-pink-200' },
-      { label: 'Cut off', value: -35, color: 'bg-red-200' },
+      { label: 'Start: 1 m 20 cm', calc: '= 120 cm', value: 120, color: 'bg-pink-200' },
+      { label: 'Cut off', calc: '− 35 cm', value: -35, color: 'bg-red-200' },
+      { label: 'Remaining', calc: '= 85 cm', value: 85, color: 'bg-green-200', isTotal: true },
     ],
     answer: 85,
     unit: 'cm',
-    emoji: '🎀',
+    prompt: 'How many cm of ribbon is left?',
   },
   {
-    text: "Oliver walked 2 m 50 cm. Liam walked 180 cm. Who walked further, and by how much?",
+    title: "Oliver vs Liam",
+    emoji: '🏃',
+    bg: 'from-teal-500 to-cyan-600',
+    text: "Oliver walked 2 m 50 cm. Liam walked 180 cm. How much further did Oliver walk than Liam?",
     steps: [
-      { label: "Oliver (2m 50cm)", value: 250, color: 'bg-blue-200' },
-      { label: "Liam (180cm)", value: 180, color: 'bg-green-200' },
-      { label: "Difference", value: 70, color: 'bg-amber-200' },
+      { label: "Oliver: 2 m 50 cm", calc: '= 250 cm', value: 250, color: 'bg-blue-200' },
+      { label: "Liam: 180 cm", calc: '180 cm', value: 180, color: 'bg-green-200' },
+      { label: "Difference: 250 − 180", calc: '= 70 cm', value: 70, color: 'bg-amber-200', isTotal: true },
     ],
     answer: 70,
     unit: 'cm',
-    emoji: '🏃',
-    extraPrompt: "Oliver walked further by _____ cm",
+    prompt: 'How many cm further did Oliver walk?',
   },
 ];
 
 export default function WordProblemSimulation() {
   const { dispatch } = usePhase();
   const { audioEnabled } = useAudio();
-  const [problemIndex, setProblemIndex] = useState(0);
+  const [pIdx, setPIdx] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [tokens, setTokens] = useState(0);
   const [showHint, setShowHint] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [revealSteps, setRevealSteps] = useState(false);
 
-  const problem = PROBLEMS[problemIndex];
+  const p = PROBLEMS[pIdx];
 
   useEffect(() => {
     if (audioEnabled) narrate(station6Narration(), true);
@@ -62,139 +72,147 @@ export default function WordProblemSimulation() {
   }, [audioEnabled]);
 
   useEffect(() => {
-    setUserAnswer('');
-    setFeedback(null);
-    setShowHint(false);
-    setAttempts(0);
-  }, [problemIndex]);
+    setUserAnswer(''); setFeedback(null);
+    setShowHint(false); setAttempts(0); setRevealSteps(false);
+  }, [pIdx]);
 
   const handleCheck = () => {
-    const isCorrect = parseInt(userAnswer) === problem.answer;
+    const correct = parseInt(userAnswer) === p.answer;
     setAttempts(a => a + 1);
-    if (isCorrect) {
+    if (correct) {
       setFeedback('correct');
       dispatch({ type: 'EARN_TOKEN', amount: 1 });
       setTokens(t => t + 1);
       setShowCelebration(true);
     } else {
-      setFeedback('incorrect');
-      if (attempts >= 1) setShowHint(true);
+      setFeedback('wrong');
+      if (attempts >= 1) { setShowHint(true); setRevealSteps(true); }
     }
   };
 
   const handleNext = () => {
-    if (problemIndex < PROBLEMS.length - 1) setProblemIndex(i => i + 1);
+    if (pIdx < PROBLEMS.length - 1) setPIdx(i => i + 1);
     else dispatch({ type: 'COMPLETE_STATION', station: 'wordproblem' });
   };
 
   return (
-    <div className="flex flex-col items-center gap-5 px-4 py-4 max-w-2xl mx-auto w-full">
+    <div className="flex flex-col gap-4 px-4 py-4 max-w-lg mx-auto w-full">
 
-      <div className="flex items-center gap-2 self-end bg-purple-50 border border-purple-200 rounded-pill px-3 py-1">
-        <span className="text-lg">💎</span>
-        <span className="text-base font-extrabold text-purple-700">{tokens} / {PROBLEMS.length} gems</span>
-      </div>
-
-      <CharacterBubble character="maya" position="left"
-        text="For word problems: identify what you need to find first, then calculate step by step! 🧠" />
-
-      <motion.div
-        key={problemIndex}
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="w-full bg-white rounded-card shadow-card p-5 border-2 border-purple-100"
-      >
-        {/* Problem header */}
-        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 mb-4">
-          <div className="text-4xl text-center mb-2">{problem.emoji}</div>
-          <p className="text-base font-extrabold text-inkDark leading-relaxed text-center">
-            {problem.text}
-          </p>
-          {problem.extraPrompt && (
-            <p className="text-sm font-bold text-purple-600 mt-2 text-center">{problem.extraPrompt}</p>
-          )}
-        </div>
-
-        {/* Visual equation builder */}
-        <div className="mb-4">
-          <p className="text-sm font-extrabold text-inkMid mb-2">📊 Break it down:</p>
-          <div className="space-y-2">
-            {problem.steps.map((step, i) => (
-              <motion.div
-                key={i}
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: i * 0.15 }}
-                className={`flex items-center gap-3 ${step.color} rounded-bubble p-3`}
-              >
-                <span className="font-extrabold text-inkDark text-sm flex-1">{step.label}</span>
-                <span className="font-black text-lg text-inkDark">
-                  {step.value < 0 ? `−${Math.abs(step.value)}` : step.value} {problem.unit}
-                </span>
-              </motion.div>
-            ))}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 bg-purple-900/30 border border-purple-500/40 rounded-2xl px-3 py-2">
+          <span className="text-2xl">👧</span>
+          <div>
+            <p className="text-xs font-extrabold text-amber-300">EMMA</p>
+            <p className="text-xs font-bold text-white/70">Measurement Island</p>
           </div>
         </div>
+        <div className="flex items-center gap-1.5 bg-purple-900/30 border border-purple-500/40 rounded-pill px-3 py-2">
+          <span className="text-xl">💎</span>
+          <span className="text-base font-black text-purple-300">{tokens}/{PROBLEMS.length}</span>
+        </div>
+      </div>
 
-        {/* Answer input */}
-        {feedback !== 'correct' && (
-          <div className="space-y-3">
-            <p className="text-base font-extrabold text-inkDark">
-              {problem.extraPrompt || `What is the answer? (in ${problem.unit})`}
-            </p>
-            <div className="flex gap-3">
-              <input
-                type="number"
-                value={userAnswer}
-                onChange={e => setUserAnswer(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleCheck()}
-                placeholder={`Answer in ${problem.unit}`}
-                className="flex-1 border-2 border-gray-200 rounded-bubble px-4 py-3 text-xl font-extrabold text-center focus:outline-none focus:border-purple-400"
-              />
-              <button onClick={handleCheck} className="btn-purple text-base px-5 py-3">
-                Check ✓
-              </button>
+      {/* Strategy */}
+      <div className="bg-purple-500/15 border border-purple-400/40 rounded-2xl px-4 py-2">
+        <p className="text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1">Word Problem Strategy</p>
+        <div className="flex gap-2 justify-center">
+          {['1. Read', '2. Find', '3. Calculate', '4. Check'].map(s => (
+            <div key={s} className="bg-white/10 rounded-pill px-2 py-1 text-xs font-extrabold text-white/80">{s}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main card */}
+      <AnimatePresence mode="wait">
+        <motion.div key={pIdx}
+          initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.3 }}
+          className="bg-white rounded-2xl shadow-float overflow-hidden"
+        >
+          {/* Problem header */}
+          <div className={`bg-gradient-to-br ${p.bg} px-5 py-5`}>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-4xl">{p.emoji}</span>
+              <div>
+                <p className="text-xs font-extrabold text-white/60 uppercase tracking-wider">Problem {pIdx + 1} of {PROBLEMS.length}</p>
+                <p className="text-xl font-black text-white">{p.title}</p>
+              </div>
+            </div>
+            <div className="bg-white/15 rounded-2xl p-3">
+              <p className="text-base font-extrabold text-white leading-snug">{p.text}</p>
             </div>
           </div>
-        )}
 
-        {/* Feedback */}
-        <AnimatePresence>
-          {feedback === 'incorrect' && (
-            <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-              className="mt-3 bg-red-50 border border-red-200 rounded-bubble p-3 text-center">
-              <p className="font-extrabold text-red-700">🤔 Not quite! Try again!</p>
-            </motion.div>
-          )}
-          {feedback === 'correct' && (
-            <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-              className="mt-3 bg-teal-50 border-2 border-teal-300 rounded-bubble p-4 text-center">
-              <div className="text-3xl mb-1">🎉</div>
-              <p className="font-extrabold text-xl text-teal-700">Correct! {problem.answer} {problem.unit}! 💎</p>
-              <button onClick={handleNext} className="mt-3 btn-primary text-base px-6 py-3">
-                {problemIndex < PROBLEMS.length - 1 ? 'Next Problem →' : '✅ Complete Station!'}
+          <div className="px-5 py-4 space-y-3">
+            {/* Step breakdown (always shown, or revealed on hint) */}
+            {(revealSteps || feedback === 'correct') && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <p className="text-sm font-extrabold text-gray-600 mb-2">📊 Step-by-step:</p>
+                <div className="space-y-1.5">
+                  {p.steps.map((step, i) => (
+                    <motion.div key={i}
+                      initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      className={`flex items-center gap-3 ${step.color} rounded-xl p-2.5 ${step.isTotal ? 'border-2 border-gray-400' : ''}`}
+                    >
+                      <span className="text-gray-700 font-extrabold text-sm flex-1">{step.label}</span>
+                      <span className={`font-black text-base ${step.isTotal ? 'text-gray-900' : 'text-gray-700'}`}>{step.calc}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Quick breakdown button */}
+            {!revealSteps && feedback !== 'correct' && (
+              <button onClick={() => setRevealSteps(true)}
+                className="w-full text-sm font-bold text-purple-500 hover:text-purple-600 py-1 text-center">
+                📊 Show step-by-step breakdown
               </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
 
-        {showHint && feedback !== 'correct' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 bg-amber-50 border border-amber-200 rounded-bubble p-3">
-            <p className="text-sm font-extrabold text-amber-700">💡 Hint: Add up all the sections: {problem.steps.map(s => Math.abs(s.value)).join(' + ')} = ?</p>
-          </motion.div>
-        )}
-      </motion.div>
+            {/* Answer input */}
+            {feedback !== 'correct' && (
+              <>
+                <p className="text-base font-extrabold text-gray-700">{p.prompt}</p>
+                <div className="flex gap-3">
+                  <input type="number" value={userAnswer}
+                    onChange={e => setUserAnswer(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && userAnswer && handleCheck()}
+                    placeholder={`Answer in ${p.unit}`}
+                    className="flex-1 border-2 border-gray-200 rounded-2xl px-4 py-3 text-2xl font-black text-center focus:outline-none focus:border-purple-400" />
+                  <button onClick={handleCheck} disabled={!userAnswer}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-black text-lg px-6 rounded-2xl transition-all active:scale-95">
+                    ✓
+                  </button>
+                </div>
+              </>
+            )}
 
-      <div className="w-full bg-purple-50 border border-purple-200 rounded-card p-4">
-        <p className="text-sm font-extrabold text-purple-700 mb-2">📌 Word Problem Strategy:</p>
-        <ul className="space-y-1">
-          {['Read the problem carefully', 'Identify what you need to find', 'Write out the calculation', 'Check your answer makes sense'].map((f, i) => (
-            <li key={f} className="text-sm font-bold text-inkDark flex items-start gap-2">
-              <span className="text-purple-500 font-black">Step {i + 1}:</span>{f}
-            </li>
-          ))}
-        </ul>
-      </div>
+            {/* Feedback */}
+            <AnimatePresence>
+              {feedback === 'wrong' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="bg-red-50 border-2 border-red-200 rounded-2xl p-3 text-center">
+                  <p className="font-extrabold text-red-600">🤔 Not quite! Check the steps above and try again.</p>
+                </motion.div>
+              )}
+              {feedback === 'correct' && (
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                  className="bg-teal-50 border-2 border-teal-400 rounded-2xl p-4 text-center">
+                  <div className="text-4xl mb-1">🎉</div>
+                  <p className="font-black text-xl text-gray-800">Correct! {p.answer} {p.unit}! 💎</p>
+                  <button onClick={handleNext}
+                    className="mt-3 bg-purple-600 hover:bg-purple-700 text-white font-black text-lg px-8 py-3 rounded-pill transition-all active:scale-95">
+                    {pIdx < PROBLEMS.length - 1 ? 'Next Problem →' : '✅ Complete Station!'}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      </AnimatePresence>
 
       <CelebrationOverlay show={showCelebration} message="💎 Gem found!" onDone={() => setShowCelebration(false)} />
     </div>
