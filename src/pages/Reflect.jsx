@@ -8,147 +8,145 @@ import { useAudio } from '../context/AudioContext.jsx';
 import { narrate, stopNarration } from '../utils/audio.js';
 import { reflectNarration } from '../utils/narration.js';
 
-const CARDS = [
-  {
-    icon: '📏', color: '#f5a623',
-    title: 'Rulers & mm',
-    fact: 'Always start from 0. Count big marks for cm, small marks for mm.',
-    formula: '10 mm = 1 cm',
-  },
-  {
-    icon: '📐', color: '#22c55e',
-    title: 'Metres & Centimetres',
-    fact: 'Use cm for small things. Use m for big things like rooms or roads.',
-    formula: '1 m = 100 cm',
-  },
-  {
-    icon: '🤚', color: '#a78bfa',
-    title: 'Estimation',
-    fact: 'Use your body as a guide to estimate before measuring.',
-    formula: 'Finger ≈ 1 cm · Hand ≈ 15 cm',
-  },
-  {
-    icon: '🔄', color: '#3b82f6',
-    title: 'Converting Units',
-    fact: 'Multiply by 100 to go from metres to centimetres. Divide to go back.',
-    formula: 'm × 100 = cm · cm ÷ 100 = m',
-  },
-  {
-    icon: '⚖️', color: '#f43f5e',
-    title: 'Comparing Lengths',
-    fact: 'Always convert to the same unit before comparing with > < =',
-    formula: 'Same unit → then compare!',
-  },
-  {
-    icon: '➕', color: '#ec4899',
-    title: 'Word Problems',
-    fact: 'Read → Find what you need → Calculate → Check your answer.',
-    formula: '4-step strategy every time',
-  },
+const CONCEPT_CARDS = [
+  { icon:'📏', color:'#f5a623', title:'Rulers',     formula:'10 mm = 1 cm',            fact:'Start from 0. Count big marks = cm, small = mm.' },
+  { icon:'📐', color:'#22c55e', title:'Metres',     formula:'1 m = 100 cm',             fact:'Use m for long objects like rooms or roads.' },
+  { icon:'🤚', color:'#a78bfa', title:'Estimation', formula:'Finger ≈ 1 cm',            fact:'Use body benchmarks to estimate before measuring.' },
+  { icon:'🔄', color:'#3b82f6', title:'Conversion', formula:'m × 100 = cm',             fact:'Multiply by 100 for m→cm. Divide for cm→m.' },
+  { icon:'⚖️', color:'#f43f5e', title:'Comparing',  formula:'Same unit → compare',      fact:'Always convert to same unit before using > < =.' },
+  { icon:'➕', color:'#ec4899', title:'Word Probs',  formula:'Read → Find → Calculate', fact:'Identify what to find first, then solve step by step.' },
 ];
+
+function getRank(pct) {
+  if (pct >= 90) return { rank:'🥇 Length Legend!',    color:'#f5a623', bg:'rgba(245,166,35,0.15)' };
+  if (pct >= 75) return { rank:'🥈 Measurement Master', color:'#9ca3af', bg:'rgba(156,163,175,0.12)' };
+  if (pct >= 60) return { rank:'🥉 Unit Explorer',      color:'#cd7c32', bg:'rgba(205,124,50,0.12)' };
+  return             { rank:'📏 Keep Measuring!',       color:'#a78bfa', bg:'rgba(167,139,250,0.12)' };
+}
 
 export default function Reflect() {
   const navigate = useNavigate();
-  const { markDone, totalStars, totalXP } = useGame();
+  const { markDone, worldScores, playCorrect, playTotal, totalStars, totalXP, resetGame } = useGame();
   const { audioEnabled } = useAudio();
 
   useEffect(() => {
+    stopNarration();
     if (audioEnabled) narrate(reflectNarration(), true);
     markDone('reflect');
     return () => stopNarration();
   }, [audioEnabled]);
 
+  const pct  = playTotal > 0 ? Math.round((playCorrect / playTotal) * 100) : 0;
+  const rank = getRank(pct);
+
+  const handlePlayAgain = () => {
+    stopNarration();
+    resetGame();
+    navigate('/');
+  };
+
   return (
-    <div className="page-bg min-h-screen relative z-10">
+    <div className="page-bg relative z-10" style={{ height:'100vh', overflow:'hidden', display:'flex', flexDirection:'column' }}>
       <TopNav />
-      <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column',
-        alignItems:'center', padding:'72px 16px 40px', maxWidth:'680px', margin:'0 auto' }}>
 
-        {/* Mascot celebration */}
-        <motion.div initial={{ scale:0.8, opacity:0 }} animate={{ scale:1, opacity:1 }}
-          transition={{ type:'spring', stiffness:200 }}
-          style={{ textAlign:'center', marginBottom:'28px' }}>
-          <div className="anim-float" style={{ display:'inline-block', marginBottom:'12px' }}>
-            <Mascot size={72} mood="excited" />
+      <div style={{
+        flex:1, display:'flex', flexDirection:'column',
+        maxWidth:'700px', margin:'0 auto', width:'100%',
+        padding:'64px 16px 16px', overflow:'hidden',
+        gap:'12px',
+      }}>
+
+        {/* ── Header row ── */}
+        <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}}
+          style={{ display:'flex', alignItems:'center', gap:'14px', flexShrink:0 }}>
+          <div className="anim-float"><Mascot size={52} mood="excited" /></div>
+          <div>
+            <h2 style={{ fontSize:'26px', fontWeight:900, color:'white', margin:0 }}>Module Complete!</h2>
+            <p style={{ fontSize:'13px', color:'rgba(255,255,255,0.5)', margin:0 }}>MeasureQuest · Length Adventures</p>
           </div>
-          <h2 style={{ fontSize:'32px', fontWeight:900, color:'white', marginBottom:'4px' }}>What You Learned!</h2>
-          <p style={{ fontSize:'15px', color:'rgba(255,255,255,0.5)' }}>
-            You mastered 6 big ideas about measurement!
-          </p>
         </motion.div>
 
-        {/* XP + Stars summary */}
-        <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.2 }}
-          style={{
-            display:'flex', gap:'12px', marginBottom:'28px', width:'100%', justifyContent:'center'
-          }}>
-          {[
-            { icon:'⭐', value:totalStars, label:'Stars Earned' },
-            { icon:'⚡', value:totalXP,   label:'XP Gained'   },
-          ].map(s => (
-            <div key={s.label} style={{
-              background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)',
-              borderRadius:'14px', padding:'16px 28px', textAlign:'center', flex:1, maxWidth:'200px'
-            }}>
-              <div style={{ fontSize:'32px', marginBottom:'4px' }}>{s.icon}</div>
-              <p style={{ fontSize:'28px', fontWeight:900, color:'#f5a623' }}>{s.value}</p>
-              <p style={{ fontSize:'12px', color:'rgba(255,255,255,0.4)', fontWeight:700 }}>{s.label}</p>
+        {/* ── Scoreboard ── */}
+        <motion.div initial={{opacity:0,scale:0.97}} animate={{opacity:1,scale:1}} transition={{delay:0.1}}
+          style={{ background: rank.bg, border:`1px solid ${rank.color}40`, borderRadius:'16px', padding:'14px 18px', flexShrink:0 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px', flexWrap:'wrap', gap:'8px' }}>
+            <p style={{ fontSize:'18px', fontWeight:900, color:rank.color, margin:0 }}>{rank.rank}</p>
+            <div style={{ display:'flex', gap:'14px' }}>
+              {[
+                { icon:'✅', val:`${playCorrect}/${playTotal}`, label:'Correct' },
+                { icon:'🎯', val:`${pct}%`,      label:'Score'   },
+                { icon:'⭐', val:totalStars,     label:'Stars'   },
+                { icon:'⚡', val:totalXP,        label:'XP'      },
+              ].map(s => (
+                <div key={s.label} style={{ textAlign:'center' }}>
+                  <p style={{ fontSize:'16px', fontWeight:900, color:'white', margin:0 }}>{s.val} {s.icon}</p>
+                  <p style={{ fontSize:'10px', color:'rgba(255,255,255,0.4)', fontWeight:700, margin:0 }}>{s.label}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          {/* Overall progress bar */}
+          <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:'999px', height:'8px', overflow:'hidden' }}>
+            <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{duration:1.4,ease:'easeOut'}}
+              style={{ height:'8px', background:rank.color, borderRadius:'999px' }} />
+          </div>
         </motion.div>
 
-        {/* Summary cards */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', width:'100%', marginBottom:'28px' }}>
-          {CARDS.map((card, i) => (
+        {/* ── Per-world scoreboard ── */}
+        {worldScores.length > 0 && (
+          <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:0.2}}
+            style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)',
+              borderRadius:'14px', padding:'12px 14px', flexShrink:0 }}>
+            <p style={{ fontSize:'12px', fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:'8px' }}>World Scores</p>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(120px,1fr))', gap:'6px' }}>
+              {worldScores.map(ws => {
+                const wp = Math.round((ws.correct/ws.total)*100);
+                return (
+                  <div key={ws.worldId} style={{ background:'rgba(255,255,255,0.05)', borderRadius:'8px', padding:'7px 10px' }}>
+                    <p style={{ fontSize:'11px', fontWeight:800, color:'rgba(255,255,255,0.6)', marginBottom:'2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                      {ws.worldName}
+                    </p>
+                    <p style={{ fontSize:'15px', fontWeight:900, color: wp>=80?'#22c55e':wp>=60?'#f5a623':'#ef4444', margin:0 }}>
+                      {ws.correct}/{ws.total} · {wp}%
+                    </p>
+                    <p style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)', margin:0 }}>⭐ {ws.stars}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Concept cards (2 columns, compact) ── */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', flex:1, overflow:'hidden' }}>
+          {CONCEPT_CARDS.map((card, i) => (
             <motion.div key={card.title}
-              initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }}
-              transition={{ delay: 0.3 + i * 0.08, type:'spring', stiffness:200 }}
-              style={{
-                background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)',
-                borderRadius:'14px', padding:'16px'
-              }}>
-              <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px' }}>
-                <span style={{ fontSize:'24px' }}>{card.icon}</span>
-                <p style={{ fontSize:'14px', fontWeight:900, color: card.color }}>{card.title}</p>
+              initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}}
+              transition={{delay: 0.3 + i*0.06, type:'spring', stiffness:200}}
+              style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.09)',
+                borderRadius:'12px', padding:'10px 12px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'4px' }}>
+                <span style={{ fontSize:'20px' }}>{card.icon}</span>
+                <p style={{ fontSize:'13px', fontWeight:900, color:card.color, margin:0 }}>{card.title}</p>
               </div>
-              <p style={{ fontSize:'12px', color:'rgba(255,255,255,0.65)', lineHeight:1.5, marginBottom:'8px' }}>
-                {card.fact}
-              </p>
-              <div style={{
-                background:`${card.color}18`, border:`1px solid ${card.color}40`,
-                borderRadius:'8px', padding:'6px 10px'
-              }}>
-                <p style={{ fontSize:'11px', fontWeight:800, color: card.color }}>{card.formula}</p>
+              <p style={{ fontSize:'11px', color:'rgba(255,255,255,0.6)', lineHeight:1.4, marginBottom:'5px' }}>{card.fact}</p>
+              <div style={{ background:`${card.color}18`, border:`1px solid ${card.color}35`, borderRadius:'6px', padding:'4px 8px' }}>
+                <p style={{ fontSize:'11px', fontWeight:800, color:card.color, margin:0 }}>{card.formula}</p>
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Badge */}
-        <motion.div initial={{ opacity:0, scale:0.8 }} animate={{ opacity:1, scale:1 }}
-          transition={{ delay:0.8, type:'spring' }}
-          style={{
-            background:'linear-gradient(135deg, rgba(245,166,35,0.25), rgba(245,166,35,0.05))',
-            border:'2px solid rgba(245,166,35,0.5)', borderRadius:'20px',
-            padding:'24px 32px', textAlign:'center', marginBottom:'24px', width:'100%'
-          }}>
-          <div style={{ fontSize:'48px', marginBottom:'8px' }}>🏅</div>
-          <p style={{ fontSize:'22px', fontWeight:900, color:'#f5a623', marginBottom:'4px' }}>
-            Length Legend!
-          </p>
-          <p style={{ fontSize:'13px', color:'rgba(255,255,255,0.5)' }}>
-            Badge unlocked · MeasureQuest Grade 3
-          </p>
-        </motion.div>
-
-        {/* CTA Buttons */}
-        <div style={{ display:'flex', gap:'12px', flexWrap:'wrap', justifyContent:'center' }}>
-          <button className="btn-ghost" onClick={() => navigate('/')}>🏠 Back to Home</button>
-          <button className="btn-yellow" style={{ fontSize:'16px', padding:'14px 32px' }}
-            onClick={() => navigate('/wonder')}>
-            🔄 Play Again!
+        {/* ── CTA ── */}
+        <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:0.8}}
+          style={{ display:'flex', gap:'10px', justifyContent:'center', flexShrink:0, paddingBottom:'4px' }}>
+          <button className="btn-ghost" style={{ fontSize:'13px', padding:'10px 20px' }}
+            onClick={() => navigate('/play')}>🏆 Play Again (Worlds)</button>
+          <button className="btn-yellow" style={{ fontSize:'15px', padding:'12px 28px' }}
+            onClick={handlePlayAgain}>
+            🔄 Start Over
           </button>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
