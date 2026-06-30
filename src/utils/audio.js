@@ -14,7 +14,14 @@ function textToFilename(text, style) {
     .split(/\s+/)
     .slice(0, 6)
     .join('_');
-  return `audio_${clean}_0.mp3`;
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  const hashStr = Math.abs(hash).toString(16);
+  return `audio_${clean}_${hashStr}.mp3`;
 }
 
 // Try loading from static assets first, fallback to ElevenLabs API

@@ -282,8 +282,21 @@ for (const q of questions) {
 }
 
 function toFilename(text) {
-  return 'audio_' + text.toLowerCase().replace(/[^a-z0-9\s]/g,'').trim()
-    .split(/\s+/).slice(0,6).join('_') + '_0.mp3';
+  const clean = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 6)
+    .join('_');
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  const hashStr = Math.abs(hash).toString(16);
+  return `audio_${clean}_${hashStr}.mp3`;
 }
 
 async function gen(text, style) {
