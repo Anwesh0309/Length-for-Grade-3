@@ -288,72 +288,124 @@ function WorldSelect({ onSelect, worldUnlocked }) {
 
 // ══════════════════════════════════════════════════════════════════════
 // Answer popup overlays — correct / wrong
+// Auto-dismiss after 1 second, no button, matches reference screenshots
 // ══════════════════════════════════════════════════════════════════════
-function CorrectPop({ onNext }) {
-  return (
-    <motion.div initial={{opacity:0,scale:0.8}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:0.8}}
-      style={{ position:'fixed', inset:0, background:'rgba(0,20,0,0.75)', zIndex:200,
-        display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ textAlign:'center', padding:'32px', background:'rgba(34,197,94,0.15)', border:'2px solid #22c55e',
-        borderRadius:'24px', maxWidth:'320px', width:'90%' }}>
-        <motion.div initial={{scale:0,rotate:-30}} animate={{scale:1,rotate:0}} transition={{type:'spring',stiffness:300}}
-          style={{ fontSize:'72px', marginBottom:'12px' }}>🎉</motion.div>
-        <h3 style={{ fontSize:'28px', fontWeight:900, color:'#22c55e', marginBottom:'8px' }}>Correct!</h3>
-        <p style={{ fontSize:'15px', color:'rgba(255,255,255,0.7)', marginBottom:'20px' }}>Brilliant! That is correct!</p>
-        <button className="btn-yellow" style={{ fontSize:'16px', padding:'12px 32px' }} onClick={onNext}>
-          Next →
-        </button>
-      </div>
-    </motion.div>
-  );
-}
+function CorrectPop({ onNext, explanation }) {
+  // Auto-dismiss after 1 second
+  React.useEffect(() => {
+    const t = setTimeout(onNext, 1000);
+    return () => clearTimeout(t);
+  }, [onNext]);
 
-function WrongPop({ correctAnswer, hint, onNext }) {
   return (
-    <motion.div initial={{opacity:0,scale:0.8}} animate={{opacity:1,scale:1}} exit={{opacity:0,scale:0.8}}
-      style={{ position:'fixed', inset:0, background:'rgba(20,0,0,0.78)', zIndex:200,
-        display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ textAlign:'center', padding:'32px', background:'rgba(239,68,68,0.15)', border:'2px solid #ef4444',
-        borderRadius:'24px', maxWidth:'360px', width:'90%' }}>
-        <motion.div initial={{scale:0}} animate={{scale:1}} transition={{type:'spring'}}
-          style={{ fontSize:'64px', marginBottom:'12px' }}>🤔</motion.div>
-        <h3 style={{ fontSize:'24px', fontWeight:900, color:'#ef4444', marginBottom:'8px' }}>Good Try!</h3>
-        <p style={{ fontSize:'14px', color:'rgba(255,255,255,0.7)', marginBottom:'10px' }}>
-          The correct answer was:<br />
-          <strong style={{ color:'#22c55e', fontSize:'18px' }}>{correctAnswer}</strong>
-        </p>
-        {hint && (
-          <div style={{ background:'rgba(245,166,35,0.12)', border:'1px solid rgba(245,166,35,0.3)',
-            borderRadius:'10px', padding:'10px', marginBottom:'16px' }}>
-            <p style={{ fontSize:'13px', color:'rgba(255,255,255,0.8)', fontWeight:700 }}>💡 {hint}</p>
-          </div>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.75 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.75 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 300,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <div style={{
+        background: '#22c55e',
+        borderRadius: '20px',
+        padding: '32px 36px',
+        textAlign: 'center',
+        minWidth: '220px',
+        maxWidth: '300px',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+      }}>
+        <div style={{ fontSize: '56px', marginBottom: '10px', lineHeight: 1 }}>🎉</div>
+        <h3 style={{ fontSize: '26px', fontWeight: 900, color: 'white', margin: '0 0 6px' }}>
+          Correct! 🎉
+        </h3>
+        {explanation && (
+          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', fontWeight: 600, margin: 0 }}>
+            {explanation}
+          </p>
         )}
-        <button className="btn-yellow" style={{ fontSize:'16px', padding:'12px 32px' }} onClick={onNext}>
-          Next →
-        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function WrongPop({ correctAnswer, onNext }) {
+  // Auto-dismiss after 1 second
+  React.useEffect(() => {
+    const t = setTimeout(onNext, 1000);
+    return () => clearTimeout(t);
+  }, [onNext]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.75 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.75 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 300,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none',
+      }}
+    >
+      <div style={{
+        background: '#ef4444',
+        borderRadius: '20px',
+        padding: '32px 36px',
+        textAlign: 'center',
+        minWidth: '220px',
+        maxWidth: '300px',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+      }}>
+        <div style={{ fontSize: '56px', marginBottom: '10px', lineHeight: 1 }}>😢</div>
+        <h3 style={{ fontSize: '26px', fontWeight: 900, color: 'white', margin: '0 0 6px' }}>
+          Not quite!
+        </h3>
+        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.9)', fontWeight: 600, margin: 0 }}>
+          Correct answer: {correctAnswer}
+        </p>
       </div>
     </motion.div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// GamePlay — test mode
+// GamePlay — test mode (no hearts, auto-advance popups)
 // ══════════════════════════════════════════════════════════════════════
 function GamePlay({ world, onFinish }) {
   const { audioEnabled } = useAudio();
   const questions = useMemo(() => world.generate(), [world.id]);
-  const [qIdx, setQIdx]     = useState(0);
-  const [hearts, setHearts] = useState(3);
-  const [stars, setStars]   = useState(0);
-  const [streak, setStreak] = useState(1);
+  const [qIdx, setQIdx]       = useState(0);
+  const [stars, setStars]     = useState(0);
+  const [streak, setStreak]   = useState(1);
   const [correct, setCorrect] = useState(0);
-  const [picked, setPicked] = useState(null);   // which opt user chose
+  const [picked, setPicked]   = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
-  const [showHint, setShowHint] = useState(false);
-  const [popup, setPopup]  = useState(null);   // 'correct' | 'wrong'
+  const [showHint, setShowHint]   = useState(false);
+  const [popup, setPopup]     = useState(null); // 'correct' | 'wrong'
 
   const q = questions[qIdx];
   const progress = (qIdx / questions.length) * 100;
+
+  const handleNext = useCallback(() => {
+    setPopup(null);
+    if (qIdx >= questions.length - 1) {
+      onFinish({
+        stars,
+        correct,
+        total: questions.length,
+        passed: true,
+      });
+      return;
+    }
+    setQIdx(i => i + 1);
+    setPicked(null);
+    setIsCorrect(null);
+    setShowHint(false);
+  }, [qIdx, questions.length, onFinish, stars, correct]);
 
   const handlePick = useCallback((opt) => {
     if (picked) return;
@@ -365,105 +417,109 @@ function GamePlay({ world, onFinish }) {
       setStars(s => s + streak);
       setStreak(s => Math.min(s + 1, 5));
       setCorrect(c => c + 1);
-      stopNarration();
-      if (audioEnabled) narrate(playCorrectNarration(), true);
     } else {
-      setHearts(h => h - 1);
       setStreak(1);
-      stopNarration();
-      if (audioEnabled) narrate(playWrongNarration(), true);
     }
+    stopNarration();
+    if (audioEnabled) narrate(ok ? playCorrectNarration() : playWrongNarration(), true);
     setPopup(ok ? 'correct' : 'wrong');
   }, [picked, q, streak, audioEnabled]);
 
-  const handleNext = useCallback(() => {
-    setPopup(null);
-    const noHearts = hearts - (isCorrect ? 0 : 1) <= 0 && !isCorrect;
-    const finalHearts = isCorrect ? hearts : hearts - 1;
-    if (finalHearts <= 0 || qIdx >= questions.length - 1) {
-      onFinish({ stars: stars + (isCorrect ? streak : 0), correct: correct + (isCorrect?1:0), total: questions.length, passed: qIdx >= questions.length - 1 });
-      return;
-    }
-    setQIdx(i => i + 1);
-    setPicked(null); setIsCorrect(null); setShowHint(false);
-  }, [hearts, isCorrect, qIdx, questions.length, onFinish, stars, correct, streak]);
-
   return (
-    <div style={{ width:'100%', maxWidth:'560px', position:'relative' }}>
+    <div style={{ width: '100%', maxWidth: '560px', position: 'relative' }}>
       <AnimatePresence>
-        {popup === 'correct' && <CorrectPop onNext={handleNext} />}
-        {popup === 'wrong'   && <WrongPop correctAnswer={q.ans} hint={q.hint} onNext={handleNext} />}
+        {popup === 'correct' && (
+          <CorrectPop
+            onNext={handleNext}
+            explanation={`${q.ans}`}
+          />
+        )}
+        {popup === 'wrong' && (
+          <WrongPop
+            correctAnswer={q.ans}
+            onNext={handleNext}
+          />
+        )}
       </AnimatePresence>
 
       {/* World label */}
-      <div style={{ textAlign:'center', marginBottom:'12px' }}>
-        <span style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)',
-          borderRadius:'999px', padding:'5px 16px', fontSize:'13px', fontWeight:800, color:'white' }}>
+      <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+        <span style={{
+          background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+          borderRadius: '999px', padding: '5px 16px', fontSize: '13px', fontWeight: 800, color: 'white',
+        }}>
           {world.emoji} {world.name}
         </span>
       </div>
 
-      {/* HUD */}
-      <div style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)',
-        borderRadius:'14px', padding:'10px 16px', marginBottom:'10px',
-        display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'5px' }}>
-          <span style={{ fontSize:'16px' }}>⭐</span>
-          <span style={{ fontSize:'17px', fontWeight:900, color:'white' }}>{stars}</span>
+      {/* HUD — no hearts */}
+      <div style={{
+        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '14px', padding: '10px 16px', marginBottom: '10px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <span style={{ fontSize: '16px' }}>⭐</span>
+          <span style={{ fontSize: '17px', fontWeight: 900, color: 'white' }}>{stars}</span>
         </div>
-        <div style={{ display:'flex', gap:'3px' }}>
-          {[0,1,2].map(i => (
-            <span key={i} style={{ fontSize:'18px', filter: i >= hearts ? 'grayscale(1)' : 'none', opacity: i >= hearts ? 0.3 : 1 }}>❤️</span>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+          <span style={{ fontSize: '14px' }}>🔥</span>
+          <span style={{ fontSize: '14px', fontWeight: 800, color: '#f97316' }}>{streak}x</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:'3px' }}>
-          <span style={{ fontSize:'14px' }}>🔥</span>
-          <span style={{ fontSize:'14px', fontWeight:800, color:'#f97316' }}>{streak}x</span>
-        </div>
-        <span style={{ fontSize:'12px', color:'rgba(255,255,255,0.4)', fontWeight:700 }}>
+        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
           ✅ {correct}/{questions.length}
         </span>
       </div>
 
       {/* Progress */}
-      <div style={{ display:'flex', justifyContent:'space-between', fontSize:'11px', color:'rgba(255,255,255,0.4)', fontWeight:700, marginBottom:'5px' }}>
-        <span>Q {qIdx+1}/{questions.length}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: 700, marginBottom: '5px' }}>
+        <span>Q {qIdx + 1}/{questions.length}</span>
         <span>{Math.round(progress)}%</span>
       </div>
-      <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:'999px', height:'5px', marginBottom:'16px' }}>
-        <motion.div animate={{ width:`${progress}%` }} style={{ height:'5px', background:'#f5a623', borderRadius:'999px' }} />
+      <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '999px', height: '5px', marginBottom: '16px' }}>
+        <motion.div animate={{ width: `${progress}%` }} style={{ height: '5px', background: '#f5a623', borderRadius: '999px' }} />
       </div>
 
-      {/* Question */}
+      {/* Question card */}
       <AnimatePresence mode="wait">
-        <motion.div key={qIdx} initial={{opacity:0,y:14}} animate={{opacity:1,y:0}}
-          exit={{opacity:0,y:-14}} transition={{duration:0.28}}
-          style={{ background:'rgba(93,63,211,0.2)', border:'1px solid rgba(93,63,211,0.35)',
-            borderRadius:'16px', padding:'20px', marginBottom:'14px' }}>
+        <motion.div key={qIdx}
+          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.28 }}
+          style={{
+            background: 'rgba(93,63,211,0.2)', border: '1px solid rgba(93,63,211,0.35)',
+            borderRadius: '16px', padding: '20px', marginBottom: '14px',
+          }}>
 
           {/* Diagram */}
           {q.diagram && (
-            <div style={{ marginBottom:'14px' }}>{q.diagram}</div>
+            <div style={{ marginBottom: '14px' }}>{q.diagram}</div>
           )}
 
-          <p style={{ fontSize:'18px', fontWeight:900, color:'white', lineHeight:1.45, marginBottom:'16px', textAlign:'center', whiteSpace:'pre-line' }}>
+          <p style={{
+            fontSize: '18px', fontWeight: 900, color: 'white', lineHeight: 1.45,
+            marginBottom: '16px', textAlign: 'center', whiteSpace: 'pre-line',
+          }}>
             {q.q}
           </p>
 
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             {q.opts.map(opt => {
               let bg = 'rgba(93,63,211,0.3)'; let border = 'rgba(93,63,211,0.5)';
               if (picked) {
-                if (opt === q.ans) { bg='rgba(34,197,94,0.3)'; border='#22c55e'; }
-                else if (opt === picked) { bg='rgba(239,68,68,0.3)'; border='#ef4444'; }
+                if (opt === q.ans)    { bg = 'rgba(34,197,94,0.3)';  border = '#22c55e'; }
+                else if (opt === picked) { bg = 'rgba(239,68,68,0.3)'; border = '#ef4444'; }
               }
               return (
                 <button key={opt}
                   onClick={() => handlePick(opt)}
                   disabled={!!picked}
-                  style={{ background:bg, border:`2px solid ${border}`, borderRadius:'12px', padding:'16px 8px',
-                    fontSize:'18px', fontWeight:800, color:'white', cursor: picked?'default':'pointer',
-                    transition:'all 0.15s', textAlign:'center' }}>
+                  style={{
+                    background: bg, border: `2px solid ${border}`,
+                    borderRadius: '12px', padding: '16px 8px',
+                    fontSize: '18px', fontWeight: 800, color: 'white',
+                    cursor: picked ? 'default' : 'pointer',
+                    transition: 'all 0.15s', textAlign: 'center',
+                  }}>
                   {opt}
                 </button>
               );
@@ -473,16 +529,23 @@ function GamePlay({ world, onFinish }) {
           {/* Hint button */}
           {!picked && (
             <button onClick={() => setShowHint(s => !s)}
-              style={{ marginTop:'12px', width:'100%', background:'rgba(245,166,35,0.1)',
-                border:'1px solid rgba(245,166,35,0.25)', borderRadius:'10px', padding:'8px',
-                fontSize:'13px', fontWeight:700, color:'rgba(245,166,35,0.8)', cursor:'pointer' }}>
+              style={{
+                marginTop: '12px', width: '100%',
+                background: 'rgba(245,166,35,0.1)', border: '1px solid rgba(245,166,35,0.25)',
+                borderRadius: '10px', padding: '8px', fontSize: '13px', fontWeight: 700,
+                color: 'rgba(245,166,35,0.8)', cursor: 'pointer',
+              }}>
               💡 {showHint ? 'Hide Hint' : 'Show Hint'}
             </button>
           )}
           {showHint && !picked && (
-            <motion.div initial={{opacity:0,y:4}} animate={{opacity:1,y:0}}
-              style={{ marginTop:'8px', background:'rgba(245,166,35,0.1)', border:'1px solid rgba(245,166,35,0.3)',
-                borderRadius:'10px', padding:'10px', fontSize:'13px', fontWeight:700, color:'rgba(255,255,255,0.85)', textAlign:'center' }}>
+            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+              style={{
+                marginTop: '8px', background: 'rgba(245,166,35,0.1)',
+                border: '1px solid rgba(245,166,35,0.3)', borderRadius: '10px',
+                padding: '10px', fontSize: '13px', fontWeight: 700,
+                color: 'rgba(255,255,255,0.85)', textAlign: 'center',
+              }}>
               {q.hint}
             </motion.div>
           )}
