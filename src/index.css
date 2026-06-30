@@ -243,16 +243,16 @@
 
 /* ── Audio toggle ── */
 .audio-btn {
-  width: 44px; height: 44px;
+  width: 42px; height: 42px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-size: 18px;
+  cursor: pointer; font-size: 16px;
   transition: all 0.15s;
-  position: fixed; bottom: 24px; right: 24px; z-index: 99;
+  position: fixed; top: 12px; right: 24px; z-index: 99;
 }
-.audio-btn:hover { background: rgba(255,255,255,0.18); }
+.audio-btn:hover { background: rgba(255,255,255,0.14); }
 
 /* ── Animations ── */
 @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }

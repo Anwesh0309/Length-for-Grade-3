@@ -1,15 +1,30 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopNav from '../components/ui/TopNav.jsx';
 import { useGame } from '../context/GameContext.jsx';
 import { useAudio } from '../context/AudioContext.jsx';
-import { narrate, stopNarration } from '../utils/audio.js';
+import { narrate, stopNarration, say } from '../utils/audio.js';
 import { playWorldNarration, playCorrectNarration, playWrongNarration } from '../utils/narration.js';
 
 // ── helpers ───────────────────────────────────────────────────────────
-function ri(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
-function sh(a) { return [...a].sort(() => Math.random() - 0.5); }
+let seededRand = Math.random;
+function setSeed(seed) {
+  let s = seed;
+  seededRand = function() {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+function ri(a, b) { return Math.floor(seededRand() * (b - a + 1)) + a; }
+function sh(a) {
+  const arr = [...a];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(seededRand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 const WN = ['Emma','Oliver','Lily','Noah','Charlotte','Liam','Grace','Ethan','Ava','James'];
 const rn = () => WN[ri(0, WN.length - 1)];
 
@@ -90,103 +105,111 @@ function WordProblemDiagram({ text, values }) {
 // WORLD DEFINITIONS — 10 worlds, 10 questions each = 100 total
 // ══════════════════════════════════════════════════════════════════════
 function genW1() { // Ruler Meadow — ruler reading + unit selection
+  setSeed(1000);
   const qs = [];
   const objs=[['pencil','cm',17,3,'✏️'],['eraser','cm',5,5,'🧹'],['crayon','cm',9,0,'🖍️'],['book cover','cm',20,0,'📚'],['paper clip','cm',3,2,'📎']];
   for(let i=0;i<5;i++){
     const [nm,,c,m,em]=objs[i]; const ans=`${c} cm ${m} mm`;
     const opts=sh([ans,`${c+1} cm ${m} mm`,`${c} cm ${(m+3)%10} mm`,`${c-1<1?c+2:c-1} cm ${m} mm`]);
-    qs.push({q:`What measurement does the ruler show for the ${nm}?`,opts,ans,hint:`Count big marks = cm (${c}), small marks = mm (${m})`,diagram:<RulerDiagram cm={c} mm={m}/>,type:'ruler'});
+    qs.push({q:`What measurement does the ruler show for the ${nm}?`,opts,ans,hint:`Count the big marks for centimetres and the small marks for millimetres. Remember: 10 mm = 1 cm.`,diagram:<RulerDiagram cm={c} mm={m}/>,type:'ruler',narration:`What measurement does the ruler show for the ${nm}? Count the big marks for centimetres and the small marks for millimetres.`});
   }
   const unitObjs=[['a pencil','cm','✏️'],['a swimming pool','m','🏊'],['a door','m','🚪'],['an ant','mm','🐜'],['a football field','m','⚽']];
   for(let i=0;i<5;i++){
     const [obj,unit,em]=unitObjs[i];
     const opts=sh(['mm','cm','m','km']);
-    qs.push({q:`Which unit is best for measuring ${obj} ${em}?`,opts,ans:unit,hint:`Think about how big ${obj} is. Small things use cm or mm; big things use m.`,diagram:<EstimationDiagram emoji={em} name={obj} benchmarks={['1 mm = ant width','1 cm = finger','1 m = door','1 km = road']}/>,type:'unit'});
+    qs.push({q:`Which unit is best for measuring ${obj} ${em}?`,opts,ans:unit,hint:`Think about how big ${obj} is. Very tiny things use mm, small things use cm, and big things use m.`,diagram:<EstimationDiagram emoji={em} name={obj} benchmarks={['1 mm = ant width','1 cm = finger','1 m = door','1 km = road']}/>,type:'unit',narration:`Which unit is best for measuring ${obj}? Think about how big or small it is.`});
   }
   return sh(qs).slice(0,10);
 }
 
 function genW2() { // Conversion Canyon — m→cm
+  setSeed(2000);
   return Array.from({length:10},(_,i)=>{
     const m=ri(1,8),c=ri(10,90),ans=m*100+c;
     const opts=sh([ans,ans+10,ans-10,ans+100]).filter(x=>x>0).slice(0,4).map(String);
-    return{q:`${m} m ${c} cm = _____ cm`,opts,ans:String(ans),hint:`Multiply: ${m} × 100 = ${m*100}, then add ${c}. Total = ${ans} cm`,diagram:<ConversionDiagram from="metres" to="centimetres" fromVal={`${m} m ${c} cm`} toVal={`${ans} cm`}/>,type:'convert'};
+    return{q:`${m} m ${c} cm = _____ cm`,opts,ans:String(ans),hint:`To convert metres to centimetres, multiply the metres by 100, then add the extra centimetres.`,diagram:<ConversionDiagram from="metres" to="centimetres" fromVal={`${m} m ${c} cm`} toVal={`? cm`}/>,type:'convert',narration:`${m} metres and ${c} centimetres equals how many centimetres? To convert metres, multiply by one hundred.`};
   });
 }
 
 function genW3() { // Estimation Island
+  setSeed(3000);
   const items=[['pencil','✏️',17,50],['textbook','📖',30,60],['shoe','👟',24,50],['hand span','🤚',18,40],['desk height','🪑',75,120],['water bottle','🍼',25,50],['door height','🚪',200,250],['arm length','💪',60,100],['crayon','🖍️',9,20],['finger width','☝️',1,5]];
   return items.map(([nm,em,actual,max])=>{
     const wrong1=actual+ri(5,15),wrong2=actual-ri(5,12),wrong3=actual+ri(15,25);
     const opts=sh([actual,wrong1,wrong2<1?wrong3+5:wrong2,wrong3]).slice(0,4).map(x=>`${x} cm`);
-    return{q:`Estimate the length of ${nm} ${em}`,opts,ans:`${actual} cm`,hint:`Use benchmarks: finger ≈ 1 cm, hand ≈ 15 cm, forearm ≈ 30 cm, door ≈ 200 cm`,diagram:<EstimationDiagram emoji={em} name={nm} benchmarks={['☝️ 1 cm','🤚 15 cm','💪 30 cm','🚪 200 cm']}/>,type:'estimate'};
+    return{q:`Estimate the length of ${nm} ${em}`,opts,ans:`${actual} cm`,hint:`Use your body as a benchmark. Your finger is about 1 cm wide, your hand span is about 15 cm, and your forearm is about 30 cm.`,diagram:<EstimationDiagram emoji={em} name={nm} benchmarks={['☝️ 1 cm','🤚 15 cm','💪 30 cm','🚪 200 cm']}/>,type:'estimate',narration:`Estimate the length of ${nm}. Look at the benchmark clues below the picture to help you.`};
   });
 }
 
 function genW4() { // Metre Mountain — mixed unit maths
+  setSeed(4000);
   return Array.from({length:10},(_,i)=>{
     const m=ri(1,5),c=ri(5,95),total=m*100+c;
     if(i%2===0){
       const opts=sh([total,total+5,total-5,total+50]).filter(x=>x>0).slice(0,4).map(String);
-      return{q:`Convert ${m} m ${c} cm to centimetres`,opts,ans:String(total),hint:`${m} m = ${m*100} cm, plus ${c} cm = ${total} cm`,diagram:<ConversionDiagram from={`${m} m ${c} cm`} to="cm" fromVal={`${m} m ${c} cm`} toVal={`${total} cm`}/>,type:'convert'};
+      return{q:`Convert ${m} m ${c} cm to centimetres`,opts,ans:String(total),hint:`First convert the metres to centimetres by multiplying by 100, then add the remaining centimetres.`,diagram:<ConversionDiagram from={`${m} m ${c} cm`} to="cm" fromVal={`${m} m ${c} cm`} toVal={`? cm`}/>,type:'convert',narration:`Convert ${m} metres and ${c} centimetres to centimetres. How do you convert metres to centimetres?`};
     }else{
       const tm=ri(100,900);const mm=Math.floor(tm/100),rm=tm%100;const ans=`${mm} m ${rm} cm`;
       const opts=sh([ans,`${mm+1} m ${rm} cm`,`${mm} m ${rm+10} cm`,`${mm-1<0?mm+1:mm-1} m ${rm} cm`]);
-      return{q:`Convert ${tm} cm to metres and centimetres`,opts,ans,hint:`Divide: ${tm} ÷ 100 = ${mm} m, remainder ${rm} cm`,diagram:<ConversionDiagram from="cm" to="m + cm" fromVal={`${tm} cm`} toVal={ans}/>,type:'convert'};
+      return{q:`Convert ${tm} cm to metres and centimetres`,opts,ans,hint:`Divide the centimetres by 100 to find the metres. The remainder is the leftover centimetres.`,diagram:<ConversionDiagram from="cm" to="m + cm" fromVal={`${tm} cm`} toVal={`? m ? cm`}/>,type:'convert',narration:`Convert ${tm} centimetres into metres and centimetres. Divide by one hundred to find the metres.`};
     }
   });
 }
 
 function genW5() { // Comparison Creek
+  setSeed(5000);
   return Array.from({length:10},(_,i)=>{
     const n1=rn(),n2=rn();
     if(i%3===0){
       const a=ri(80,200),b=ri(80,200);
       const opts=[`${a} cm`,`${b} cm`];
       const ans=`${Math.max(a,b)} cm`;
-      return{q:`Who jumped further?\n${n1}: ${a} cm or ${n2}: ${b} cm?`,opts:sh(opts),ans,hint:`Compare the numbers. ${Math.max(a,b)} > ${Math.min(a,b)}, so ${a>b?n1:n2} jumped further.`,diagram:<WordProblemDiagram text="" values={[{label:n1,val:`${a} cm`},{label:n2,val:`${b} cm`},{label:'Larger =',val:`${Math.max(a,b)} cm`}]}/>,type:'compare'};
+      return{q:`Who jumped further?\n${n1}: ${a} cm or ${n2}: ${b} cm?`,opts:sh(opts),ans,hint:`Compare the two numbers directly. The larger number means the longer jump.`,diagram:<WordProblemDiagram text="" values={[{label:n1,val:`${a} cm`},{label:n2,val:`${b} cm`}]}/>,type:'compare',narration:`${n1} jumped ${a} centimetres. ${n2} jumped ${b} centimetres. Who jumped further?`};
     }else{
       const m=ri(1,3),c=ri(10,90),totalCm=m*100+c;
       const other=ri(50,300);
       const ans=totalCm>other?`${m} m ${c} cm`:`${other} cm`;
       const opts=sh([`${m} m ${c} cm`,`${other} cm`]);
-      return{q:`Which is longer: ${m} m ${c} cm or ${other} cm?`,opts,ans,hint:`Convert ${m} m ${c} cm = ${totalCm} cm. Compare ${totalCm} vs ${other}.`,diagram:<WordProblemDiagram text="" values={[{label:`${m} m ${c} cm =`,val:`${totalCm} cm`},{label:'Compare with',val:`${other} cm`},{label:'Longer =',val:ans}]}/>,type:'compare'};
+      return{q:`Which is longer: ${m} m ${c} cm or ${other} cm?`,opts,ans,hint:`Convert both measurements to the same unit first, then compare the numbers.`,diagram:<WordProblemDiagram text="" values={[{label:`${m} m ${c} cm`,val:`? cm`},{label:'Compare with',val:`${other} cm`}]}/>,type:'compare',narration:`Which is longer: ${m} metres and ${c} centimetres, or ${other} centimetres? Convert to the same unit first.`};
     }
   });
 }
 
 function genW6() { // Word Problem Woods
+  setSeed(6000);
   return Array.from({length:10},(_,i)=>{
     const name=rn(); const a=ri(20,80); const b=ri(10,50);
     if(i%2===0){
       const ans=a+b;
       const opts=sh([ans,ans+10,ans-5,ans+5]).filter(x=>x>0).slice(0,4).map(String);
-      return{q:`${name} has two pieces of ribbon.\nOne is ${a} cm and the other is ${b} cm.\nHow long are they altogether?`,opts,ans:String(ans),hint:`Add: ${a} + ${b} = ${ans} cm`,diagram:<WordProblemDiagram text="" values={[{label:'Ribbon 1',val:`${a} cm`},{label:'Ribbon 2',val:`${b} cm`},{label:'Total',val:`${ans} cm`}]}/>,type:'word'};
+      return{q:`${name} has two pieces of ribbon.\nOne is ${a} cm and the other is ${b} cm.\nHow long are they altogether?`,opts,ans:String(ans),hint:`When you join two lengths together, you add them. Think: which operation do you use to find the total?`,diagram:<WordProblemDiagram text="" values={[{label:'Ribbon 1',val:`${a} cm`},{label:'Ribbon 2',val:`${b} cm`},{label:'Total = ?',val:''}]}/>,type:'word',narration:`${name} has two pieces of ribbon. One is ${a} centimetres and the other is ${b} centimetres. How long are they altogether?`};
     }else{
       const total=ri(50,130),cut=ri(10,45);
       const ans2=total-cut;
       const opts2=sh([ans2,ans2+10,ans2-10,ans2+5]).filter(x=>x>0).slice(0,4).map(String);
-      return{q:`${name} had ${total} cm of string.\nShe used ${cut} cm.\nHow much string is left?`,opts:opts2,ans:String(ans2),hint:`Subtract: ${total} - ${cut} = ${ans2} cm`,diagram:<WordProblemDiagram text="" values={[{label:'Started with',val:`${total} cm`},{label:'Used',val:`${cut} cm`},{label:'Left',val:`${ans2} cm`}]}/>,type:'word'};
+      return{q:`${name} had ${total} cm of string.\nShe used ${cut} cm.\nHow much string is left?`,opts:opts2,ans:String(ans2),hint:`When you take away part of a length, you subtract. Think: what operation finds what is remaining?`,diagram:<WordProblemDiagram text="" values={[{label:'Started with',val:`${total} cm`},{label:'Used',val:`${cut} cm`},{label:'Left = ?',val:''}]}/>,type:'word',narration:`${name} had ${total} centimetres of string and used ${cut} centimetres. How much string is left?`};
     }
   });
 }
 
 function genW7() { // Conversion Castle — advanced both ways
+  setSeed(7000);
   return Array.from({length:10},(_,i)=>{
     if(i<5){
       const m=ri(2,9); const ans=m*100;
       const opts=sh([ans,ans+10,ans+100,ans-100]).filter(x=>x>0).slice(0,4).map(String);
-      return{q:`${m} metres = _____ centimetres`,opts,ans:String(ans),hint:`${m} × 100 = ${ans}`,diagram:<ConversionDiagram from="m" to="cm" fromVal={`${m} m`} toVal={`${ans} cm`}/>,type:'convert'};
+      return{q:`${m} metres = _____ centimetres`,opts,ans:String(ans),hint:`${m} × 100 = ${ans}`,diagram:<ConversionDiagram from="m" to="cm" fromVal={`${m} m`} toVal={`${ans} cm`}/>,type:'convert',narration:`${m} metres equals how many centimetres? Multiply by one hundred.`};
     }else{
       const total=ri(100,900); const m=Math.floor(total/100),r=total%100;
       const ans=`${m} m ${r} cm`;
       const opts=sh([ans,`${m+1} m ${r} cm`,`${m} m ${r+10} cm`,`${m-1<0?m+1:m-1} m ${r} cm`]);
-      return{q:`${total} centimetres = _____ m _____ cm`,opts,ans,hint:`${total} ÷ 100 = ${m} m, remainder ${r} cm`,diagram:<ConversionDiagram from="cm" to="m + cm" fromVal={`${total} cm`} toVal={ans}/>,type:'convert'};
+      return{q:`${total} centimetres = _____ m _____ cm`,opts,ans,hint:`${total} ÷ 100 = ${m} m, remainder ${r} cm`,diagram:<ConversionDiagram from="cm" to="m + cm" fromVal={`${total} cm`} toVal={ans}/>,type:'convert',narration:`${total} centimetres equals how many metres and centimetres? Divide by one hundred.`};
     }
   });
 }
 
 function genW8() { // Perimeter Plaza
+  setSeed(8000);
   const shapes=[
     {name:'square',sides:[5,5,5,5],emoji:'🔲'},
     {name:'rectangle',sides:[8,4,8,4],emoji:'▬'},
@@ -202,7 +225,7 @@ function genW8() { // Perimeter Plaza
   return shapes.map(s=>{
     const ans=s.sides.reduce((a,b)=>a+b,0);
     const opts=sh([ans,ans+2,ans-2,ans+4]).filter(x=>x>0).slice(0,4).map(x=>`${x} cm`);
-    return{q:`Find the perimeter of the ${s.name} ${s.emoji}.\nSides: ${s.sides.join(' cm, ')} cm`,opts,ans:`${ans} cm`,hint:`Add all sides: ${s.sides.join(' + ')} = ${ans} cm`,diagram:<WordProblemDiagram text="" values={s.sides.map((v,i)=>({label:`Side ${i+1}`,val:`${v} cm`})).concat([{label:'Perimeter',val:`${ans} cm`}])}/>,type:'perimeter'};
+    return{q:`Find the perimeter of the ${s.name} ${s.emoji}.\nSides: ${s.sides.join(' cm, ')} cm`,opts,ans:`${ans} cm`,hint:`Add all sides: ${s.sides.join(' + ')} = ${ans} cm`,diagram:<WordProblemDiagram text="" values={s.sides.map((v,i)=>({label:`Side ${i+1}`,val:`${v} cm`})).concat([{label:'Perimeter',val:`${ans} cm`}])}/>,type:'perimeter',narration:`Find the perimeter of the ${s.name}. Add all the sides together.`};
   });
 }
 
@@ -212,10 +235,12 @@ function genW9() { // Mixed Mastery — blend of all types
   pool.push(...genW5().slice(0,3));
   pool.push(...genW6().slice(0,2));
   pool.push(...genW3().slice(0,2));
+  setSeed(9000);
   return sh(pool).slice(0,10);
 }
 
 function genW10() { // Length Legend Challenge — hardest
+  setSeed(10000);
   return Array.from({length:10},(_,i)=>{
     const name=rn();
     if(i<4){
@@ -223,12 +248,12 @@ function genW10() { // Length Legend Challenge — hardest
       const total=(m1*100+c1)+(m2*100+c2); const rm=Math.floor(total/100),rc=total%100;
       const ans=`${rm} m ${rc} cm`;
       const opts=sh([ans,`${rm+1} m ${rc} cm`,`${rm} m ${rc+10} cm`,`${rm-1<0?rm+1:rm-1} m ${rc} cm`]);
-      return{q:`${name} walked ${m1} m ${c1} cm then ${m2} m ${c2} cm.\nWhat is the total distance?`,opts,ans,hint:`Convert: ${m1*100+c1} + ${m2*100+c2} = ${total} cm = ${rm} m ${rc} cm`,diagram:<WordProblemDiagram text="" values={[{label:'Walk 1',val:`${m1} m ${c1} cm`},{label:'Walk 2',val:`${m2} m ${c2} cm`},{label:'Total',val:ans}]}/>,type:'advanced'};
+      return{q:`${name} walked ${m1} m ${c1} cm then ${m2} m ${c2} cm.\nWhat is the total distance?`,opts,ans,hint:`Convert: ${m1*100+c1} + ${m2*100+c2} = ${total} cm = ${rm} m ${rc} cm`,diagram:<WordProblemDiagram text="" values={[{label:'Walk 1',val:`${m1} m ${c1} cm`},{label:'Walk 2',val:`${m2} m ${c2} cm`},{label:'Total',val:ans}]}/>,type:'advanced',narration:`${name} walked ${m1} metres and ${c1} centimetres, then ${m2} metres and ${c2} centimetres. What is the total distance?`};
     }else{
       const total=ri(200,500),cut1=ri(50,100),cut2=ri(30,80);
       const left=total-cut1-cut2; const ans=left>0?`${left} cm`:`${total-cut1} cm`;
       const opts=sh([ans,`${left+10} cm`,`${left-10} cm`,`${left+20} cm`]).filter(x=>x!==`${left} cm`||true).slice(0,4);
-      return{q:`A rope is ${total} cm long.\n${name} cuts off ${cut1} cm, then ${cut2} cm.\nHow much is left?`,opts,ans,hint:`${total} - ${cut1} - ${cut2} = ${left} cm`,diagram:<WordProblemDiagram text="" values={[{label:'Original',val:`${total} cm`},{label:'Cut 1',val:`${cut1} cm`},{label:'Cut 2',val:`${cut2} cm`},{label:'Remaining',val:ans}]}/>,type:'advanced'};
+      return{q:`A rope is ${total} cm long.\n${name} cuts off ${cut1} cm, then ${cut2} cm.\nHow much is left?`,opts,ans,hint:`${total} - ${cut1} - ${cut2} = ${left} cm`,diagram:<WordProblemDiagram text="" values={[{label:'Original',val:`${total} cm`},{label:'Cut 1',val:`${cut1} cm`},{label:'Cut 2',val:`${cut2} cm`},{label:'Remaining',val:ans}]}/>,type:'advanced',narration:`A rope is ${total} centimetres long. ${name} cuts off ${cut1} centimetres, then ${cut2} centimetres. How much is left?`};
     }
   });
 }
@@ -389,6 +414,14 @@ function GamePlay({ world, onFinish }) {
 
   const q = questions[qIdx];
   const progress = (qIdx / questions.length) * 100;
+
+  useEffect(() => {
+    stopNarration();
+    if (audioEnabled && q && q.narration) {
+      narrate([say(q.narration)], true);
+    }
+    return () => stopNarration();
+  }, [qIdx, q, audioEnabled]);
 
   const handleNext = useCallback(() => {
     setPopup(null);
